@@ -49,18 +49,42 @@ $data = Invoke-RestMethod -Uri "$base/Clubs/Clubs/GetMembersInClubs" -Method Pos
 if (-not $data.UsersInClubList) { throw 'empty UsersInClubList' }
 
 # --- append ---
-$ts = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mmZ')
-
-$lines = $data.UsersInClubList |
-    Where-Object { $_.ClubName -match $keep } |
-    ForEach-Object { '{0},"{1}",{2}' -f $ts, $_.ClubName, $_.UsersCountCurrentlyInClub }
-
-if (-not $lines) { throw 'filter matched no clubs — check $keep' }
-
+$ts  = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mmZ')
 $enc = New-Object System.Text.UTF8Encoding($false)
-if (-not (Test-Path $csv)) {
-    [IO.File]::WriteAllText($csv, "ts,club,n`n", $enc)
+$reg = Join-Path $PSScriptRoot 'clubs.csv'
+$csv = Join-Path $PSScriptRoot ('samples-{0}.csv' -f (Get-Date).ToUniversalTime().ToString('yyyy-MM'))
+
+# --- club registry, keyed on address ---
+$clubs = if (Test-Path $reg) { @(Import-Csv $reg) } else { @() }
+$byAddr = @{}
+foreach ($c in $clubs) { $byAddr[$c.address] = $c }
+
+$nextId = if ($clubs.Count) { ([int[]]$clubs.id | Measure-Object -Max).Maximum + 1 } else { 1 }
+$dirty  = $false
+
+foreach ($c in $data.UsersInClubList) {
+    $addr = $c.ClubAddress.Trim()
+    $name = $c.ClubName.Trim()
+    if (-not $byAddr.ContainsKey($addr)) {
+        $row = [pscustomobject]@{ id = $nextId; name = $name; address = $addr }
+        $clubs += $row; $byAddr[$addr] = $row; $nextId++; $dirty = $true
+        Write-Host "new club: $name"
+    } elseif ($byAddr[$addr].name -ne $name) {
+        Write-Host "renamed: $($byAddr[$addr].name) -> $name"
+        $byAddr[$addr].name = $name; $dirty = $true
+    }
 }
+
+if ($dirty) {
+    $out = @('id,name,address') + ($clubs | ForEach-Object { '{0},"{1}","{2}"' -f $_.id, $_.name, $_.address })
+    [IO.File]::WriteAllLines($reg, [string[]]$out, $enc)
+}
+
+# --- samples ---
+$lines = $data.UsersInClubList | ForEach-Object {
+    '{0},{1},{2}' -f $ts, $byAddr[$_.ClubAddress.Trim()].id, $_.UsersCountCurrentlyInClub
+}
+if (-not (Test-Path $csv)) { [IO.File]::WriteAllText($csv, "ts,club_id,n`n", $enc) }
 [IO.File]::AppendAllLines($csv, [string[]]$lines, $enc)
 
-Write-Host "$ts — wrote $($lines.Count) rows"
+Write-Host "$ts — $($lines.Count) rows, $($clubs.Count) clubs known"
