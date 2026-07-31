@@ -55,31 +55,30 @@ $reg = Join-Path $PSScriptRoot 'clubs.csv'
 $csv = Join-Path $PSScriptRoot ('samples-{0}.csv' -f (Get-Date).ToUniversalTime().ToString('yyyy-MM'))
 
 # --- club registry, keyed on address ---
-$clubs = if (Test-Path $reg) { @(Import-Csv $reg) } else { @() }
+$clubs  = [System.Collections.Generic.List[object]]::new()
+if (Test-Path $reg) { Import-Csv $reg | ForEach-Object { $clubs.Add($_) } }
+
 $byAddr = @{}
 foreach ($c in $clubs) { $byAddr[$c.address] = $c }
 
-$nextId = if ($clubs.Count) { ([int[]]$clubs.id | Measure-Object -Max).Maximum + 1 } else { 1 }
-$dirty  = $false
+$nextId = 1
+if ($clubs.Count) {
+    $nextId = ($clubs | ForEach-Object { [int]$_.id } | Measure-Object -Max).Maximum + 1
+}
+$dirty = $false
 
 foreach ($c in $data.UsersInClubList) {
     $addr = $c.ClubAddress.Trim()
     $name = $c.ClubName.Trim()
     if (-not $byAddr.ContainsKey($addr)) {
         $row = [pscustomobject]@{ id = $nextId; name = $name; address = $addr }
-        $clubs += $row; $byAddr[$addr] = $row; $nextId++; $dirty = $true
+        $clubs.Add($row); $byAddr[$addr] = $row; $nextId++; $dirty = $true
         Write-Host "new club: $name"
     } elseif ($byAddr[$addr].name -ne $name) {
         Write-Host "renamed: $($byAddr[$addr].name) -> $name"
         $byAddr[$addr].name = $name; $dirty = $true
     }
 }
-
-if ($dirty) {
-    $out = @('id,name,address') + ($clubs | ForEach-Object { '{0},"{1}","{2}"' -f $_.id, $_.name, $_.address })
-    [IO.File]::WriteAllLines($reg, [string[]]$out, $enc)
-}
-
 # --- samples ---
 $lines = $data.UsersInClubList | ForEach-Object {
     '{0},{1},{2}' -f $ts, $byAddr[$_.ClubAddress.Trim()].id, $_.UsersCountCurrentlyInClub
