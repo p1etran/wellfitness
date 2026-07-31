@@ -14,7 +14,10 @@ $hdr = @{
     'Accept'           = 'application/json, text/plain, */*'
 }
 
-if ($env:CI) { Start-Sleep -Seconds (Get-Random -Minimum 0 -Maximum 60) }
+# Small jitter so the poll doesn't hit the portal at an exact fixed second.
+# Kept short deliberately: Actions bills each job rounded up to a full minute,
+# and the rest of the job runs in ~15s, so this must not push it past 60s.
+if ($env:CI) { Start-Sleep -Seconds (Get-Random -Minimum 0 -Maximum 15) }
 
 # --- login ---
 if (-not $env:GYM_LOGIN -or -not $env:GYM_PASS) { throw 'GYM_LOGIN / GYM_PASS not set' }

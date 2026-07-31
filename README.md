@@ -72,6 +72,29 @@ handling. Roughly 3–4 MB per month.
 Two GitHub repo secrets: `GYM_LOGIN` (account email) and `GYM_PASS`. Never in
 the source. Repo is private.
 
+## Polling cadence
+
+The `schedule:` block in the workflow is **only a 6-hourly heartbeat**, so
+collection survives if the external trigger disappears. The real cadence comes
+from [cron-job.org](https://cron-job.org), which every 30 minutes POSTs to:
+
+```
+POST https://api.github.com/repos/p1etran/wellfitness/actions/workflows/poll.yml/dispatches
+Authorization: Bearer <fine-grained PAT, Actions: read+write on this repo>
+Accept: application/vnd.github+json
+X-GitHub-Api-Version: 2022-11-28
+Body: {"ref":"main"}
+```
+
+A successful dispatch returns **HTTP 204 with an empty body** — that is the
+expected response, not an error. `workflow_dispatch` events are not subject to
+the throttling that eats scheduled runs, so these fire within seconds.
+
+**The PAT expires.** When it does, the dispatch starts returning 401, the
+6-hourly heartbeat quietly becomes the only source of data, and nothing else
+announces the problem. Keep failure notifications enabled on the cron job, and
+put the token's expiry date in a calendar.
+
 ## Verifying it's working
 
 - **Actions log prints zero `new club:` lines** on a healthy run. The last
@@ -84,17 +107,24 @@ the source. Repo is private.
 
 ## Gotchas
 
-- **The workflow is currently on `*/15`, and that does not fit the budget.**
-  Private repos on the GitHub Free plan get 2,000 Linux minutes/month, and
-  every job is billed rounded up to a full minute. 30-minute polling
-  (~1,440 min/month) fits; 15-minute polling does not, and collection will
-  silently stop partway through the month when the allowance runs out.
-  Either move the cron to `*/30` or accept losing the back half of each month.
+- **GitHub's scheduler will not give you 15-minute polling.** `schedule:` is
+  best-effort, and on a free-plan private repo a `*/15` cron gets throttled
+  hard — the first full day on `*/15` produced **four** runs, spaced ~2h50m
+  apart, with no failures in between. GitHub was dropping the firings, not
+  failing them. Editing the cron expression cannot fix this; the trigger has
+  to come from outside (see *Polling cadence* below).
+- **The minute budget is the real constraint.** Private repos on the GitHub
+  Free plan get 2,000 Linux minutes/month, and every job is billed rounded up
+  to a full minute. 30-minute polling is ~1,460 runs/month ≈ 1,460 min and
+  fits; 15-minute polling does not, and collection silently stops partway
+  through the month when the allowance runs out. This is also why `poll.ps1`
+  keeps its startup jitter under 15s — the job runs in ~15s, so a longer
+  random sleep would push some runs into a second billed minute for nothing.
 - **UTC storage.** Analysis must convert to `Europe/Warsaw`, not a hardcoded
   offset, or the DST change in late October shifts half the dataset by an hour.
-- **Cron is best-effort.** Scheduled runs get delayed or dropped under load.
-  At 30-minute polling expect ~40–46 samples/day rather than a clean 48.
-  Gaps are normal.
+- **Gaps are normal even when everything works.** Expect ~40–46 samples/day
+  rather than a clean 48. The analysis buckets by weekday × hour and takes
+  medians, so missing slots cost precision, not correctness.
 - **Address changes are the one thing that breaks ID stability.** If a club's
   address string changes (relocation, typo fix), the script sees an unknown
   address and files it as a new club, splitting that location's history. The
