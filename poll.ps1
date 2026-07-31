@@ -5,7 +5,7 @@ $base = 'https://wellfitness.perfectgym.pl/ClientPortal2'
 $csv  = Join-Path $PSScriptRoot 'samples.csv'
 
 # clubs to record — comment out to keep all ~105
-$keep = '^Warszawa|^Piaseczno|^Legionowo|^Łomianki|^Sulejówek'
+$keep = '.'
 
 $hdr = @{
     'CP-LANG'          = 'pl'
