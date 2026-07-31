@@ -21,7 +21,7 @@ jobs:
       - run: |
           git config user.name  bot
           git config user.email bot@users.noreply.github.com
-          git pull --rebase
-          git add samples.csv
+          git add -A
           git diff --staged --quiet || git commit -m "sample $(date -u +%FT%TZ)"
+          git pull --rebase
           git push
