@@ -79,6 +79,13 @@ foreach ($c in $data.UsersInClubList) {
         $byAddr[$addr].name = $name; $dirty = $true
     }
 }
+
+if ($dirty) {
+    $out = @('id,name,address') + ($clubs | ForEach-Object {
+        '{0},"{1}","{2}"' -f $_.id, $_.name, $_.address
+    })
+    [IO.File]::WriteAllLines($reg, [string[]]$out, $enc)
+}
 # --- samples ---
 $lines = $data.UsersInClubList | ForEach-Object {
     '{0},{1},{2}' -f $ts, $byAddr[$_.ClubAddress.Trim()].id, $_.UsersCountCurrentlyInClub
