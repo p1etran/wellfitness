@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wellfitness Pulse — club occupancy across Poland</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💪</text></svg>">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<style>
+  /* ---------- design tokens (deliberate dark theme) ---------- */
+  :root {
+    color-scheme: dark;
+    --page:        #0b0e14;
+    --surface:     #12151c;
+    --surface-2:   #171b24;
+    --ink:         #f4f6fa;
+    --ink-2:       #b7bdc9;
+    --ink-muted:   #7d8493;
+    --hairline:    rgba(255,255,255,.08);
+    --grid:        rgba(255,255,255,.06);
+    --accent:      #3987e5;
+    --accent-2:    #d95926;
+    --good:        #0ca30c;
+    --radius:      14px;
+    --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font: 15px/1.55 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+
+  /* ---------- header ---------- */
+  header {
+    position: sticky; top: 0; z-index: 1100;
+    background: rgba(11,14,20,.82); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .nav { display: flex; align-items: center; gap: 14px; height: 58px; }
+  .logo { font-weight: 800; letter-spacing: .04em; font-size: 15px; white-space: nowrap; }
+  .logo span { color: var(--accent); }
+  .status-pill {
+    margin-left: auto; display: flex; align-items: center; gap: 8px;
+    font-size: 12.5px; color: var(--ink-2);
+    background: var(--surface); border: 1px solid var(--hairline);
+    padding: 6px 12px; border-radius: 999px; white-space: nowrap;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-muted); flex: none; }
+  .dot.live  { background: var(--good); box-shadow: 0 0 0 0 rgba(12,163,12,.5); animation: pulse 2.2s infinite; }
+  .dot.stale { background: #fab219; }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(12,163,12,.45); }
+    70% { box-shadow: 0 0 0 9px rgba(12,163,12,0); }
+    100% { box-shadow: 0 0 0 0 rgba(12,163,12,0); }
+  }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 54px 0 10px; position: relative; overflow: hidden; }
+  .hero::before {
+    content: ""; position: absolute; inset: -40% -20% auto;
+    height: 130%; pointer-events: none;
+    background:
+      radial-gradient(600px 300px at 18% 20%, rgba(57,135,229,.16), transparent 65%),
+      radial-gradient(500px 260px at 85% 10%, rgba(217,89,38,.10), transparent 65%);
+  }
+  .hero h1 { font-size: clamp(28px, 4.6vw, 44px); line-height: 1.12; margin: 0 0 10px; letter-spacing: -.015em; position: relative; }
+  .hero p.lede { color: var(--ink-2); max-width: 640px; margin: 0 0 26px; font-size: 16px; position: relative; }
+
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; position: relative; }
+  .kpi {
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: var(--radius); padding: 16px 18px 14px;
+  }
+  .kpi .label { font-size: 12px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .07em; }
+  .kpi .value { font-size: 32px; font-weight: 750; letter-spacing: -.02em; margin-top: 2px; }
+  .kpi .sub { font-size: 12.5px; color: var(--ink-2); margin-top: 2px; }
+
+  /* ---------- collection progress ---------- */
+  .collect {
+    margin-top: 14px; background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: var(--radius); padding: 14px 18px;
+    display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+  }
+  .collect .txt { font-size: 13.5px; color: var(--ink-2); flex: 1 1 320px; }
+  .collect .txt b { color: var(--ink); }
+  .meter { flex: 1 1 260px; height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; border: 1px solid var(--hairline); }
+  .meter i { display: block; height: 100%; background: linear-gradient(90deg, #1c5cab, #3987e5); border-radius: 999px; transition: width .6s ease; }
+
+  /* ---------- sections ---------- */
+  section { margin: 46px 0; scroll-margin-top: 72px; }
+  .sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .sec-head h2 { font-size: 21px; margin: 0; letter-spacing: -.01em; }
+  .sec-head .hint { font-size: 13px; color: var(--ink-muted); }
+
+  /* ---------- map ---------- */
+  .map-card { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius); overflow: hidden; }
+  .map-toolbar { display: flex; gap: 10px; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--hairline); flex-wrap: wrap; }
+  .map-toolbar input {
+    background: var(--surface-2); color: var(--ink); border: 1px solid var(--hairline);
+    border-radius: 9px; padding: 8px 12px; font: 13.5px var(--sans); width: 280px; max-width: 100%;
+  }
+  .map-toolbar input::placeholder { color: var(--ink-muted); }
+  .map-legend { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); flex-wrap: wrap; }
+  .ramp { width: 110px; height: 8px; border-radius: 4px; background: linear-gradient(90deg,#0d366b,#1c5cab,#2a78d6,#5598e7,#9ec5f4,#cde2fb); }
+  #map { height: 560px; background: #0b0e14; }
+  .leaflet-container { font: 12px var(--sans); }
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface-2); color: var(--ink); box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+  .leaflet-popup-content { margin: 10px 14px; }
+  .popup-name { font-weight: 700; font-size: 13px; }
+  .popup-now { color: var(--ink-2); margin-top: 2px; }
+  .popup-link { display: inline-block; margin-top: 6px; font-size: 12px; cursor: pointer; color: var(--accent); }
+  .approx-note { padding: 8px 14px; font-size: 12px; color: var(--ink-muted); border-top: 1px solid var(--hairline); }
+
+  /* ---------- club detail ---------- */
+  #club-panel { display: none; }
+  #club-panel.open { display: block; }
+  .club-card { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius); padding: 20px; }
+  .club-top { display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; }
+  .club-top h3 { margin: 0; font-size: 20px; }
+  .club-top .addr { color: var(--ink-muted); font-size: 13px; }
+  .club-now { margin-left: auto; font-size: 14px; color: var(--ink-2); }
+  .club-now b { font-size: 22px; color: var(--ink); }
+  .club-grid { display: grid; grid-template-columns: 1fr; gap: 22px; margin-top: 18px; }
+  @media (min-width: 900px) { .club-grid { grid-template-columns: 3fr 2fr; } }
+  .chart-title { font-size: 13px; font-weight: 650; color: var(--ink-2); margin: 0 0 8px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .chip { font-size: 12.5px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--hairline); background: var(--surface-2); color: var(--ink-2); }
+  .chip b { color: var(--ink); }
+
+  /* ---------- heatmap ---------- */
+  .heat { display: grid; grid-template-columns: 34px repeat(24, 1fr); gap: 2px; }
+  .heat .hlabel { font-size: 10.5px; color: var(--ink-muted); align-self: center; }
+  .heat .tick { font-size: 9.5px; color: var(--ink-muted); text-align: center; padding-top: 3px; }
+  .heat .cell { aspect-ratio: 1 / .78; border-radius: 3px; background: rgba(255,255,255,.035); cursor: default; min-width: 0; }
+  .heat .cell[data-v] { cursor: pointer; }
+  .heat-legend { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--ink-muted); margin-top: 10px; }
+
+  /* ---------- charts ---------- */
+  .chart-card { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius); padding: 18px 18px 12px; }
+  .charts-2 { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  @media (min-width: 900px) { .charts-2 { grid-template-columns: 3fr 2fr; } }
+  svg text { font-family: var(--sans); }
+  .bar { transition: opacity .12s; }
+  .bar:hover { opacity: .85; }
+
+  /* ---------- leaderboard ---------- */
+  .boards { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  @media (min-width: 820px) { .boards { grid-template-columns: 1fr 1fr; } }
+  .board { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius); padding: 16px 18px; }
+  .board h3 { margin: 0 0 10px; font-size: 14.5px; }
+  .row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--grid); font-size: 13.5px; cursor: pointer; }
+  .row:hover .rname { color: var(--accent); }
+  .row .rname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
+  .row .rbar { grid-column: 1 / -1; height: 5px; border-radius: 3px; background: var(--surface-2); overflow: hidden; margin: -2px 0 3px; }
+  .row .rbar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+  .row .rval { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* ---------- footer ---------- */
+  footer { border-top: 1px solid var(--hairline); margin-top: 60px; padding: 28px 0 44px; color: var(--ink-muted); font-size: 13px; }
+  footer .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 22px; }
+  footer h4 { color: var(--ink-2); font-size: 12.5px; text-transform: uppercase; letter-spacing: .07em; margin: 0 0 8px; }
+  footer ul { margin: 0; padding-left: 16px; }
+  footer li { margin: 4px 0; }
+
+  /* ---------- tooltip ---------- */
+  #tip {
+    position: fixed; z-index: 2000; pointer-events: none; display: none;
+    background: #1e222c; border: 1px solid var(--hairline); color: var(--ink);
+    font-size: 12.5px; line-height: 1.4; padding: 7px 10px; border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.5); max-width: 260px;
+  }
+  #tip .t2 { color: var(--ink-2); }
+
+  /* ---------- load error ---------- */
+  #boot-error { display: none; margin: 40px 0; background: var(--surface); border: 1px solid rgba(250,178,25,.4); border-radius: var(--radius); padding: 22px; }
+  #boot-error code { background: var(--surface-2); padding: 2px 7px; border-radius: 6px; font-size: 13px; }
+
+  .skeleton { color: var(--ink-muted); font-size: 13.5px; padding: 30px 0; text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <div class="logo">WELLFITNESS <span>PULSE</span></div>
+    <div class="status-pill"><span class="dot" id="live-dot"></span><span id="live-text">loading…</span></div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="hero">
+    <h1>Who's at the gym, <span style="color:var(--accent)">right now?</span></h1>
+    <p class="lede">Live headcounts from every Wellfitness club in Poland, sampled around the clock —
+      building toward one answer: <b style="color:var(--ink)">when is your club quietest?</b></p>
+    <div class="kpis" id="kpis"></div>
+    <div class="collect" id="collect" style="display:none">
+      <div class="txt" id="collect-txt"></div>
+      <div class="meter"><i id="collect-bar" style="width:0%"></i></div>
+    </div>
+  </div>
+
+  <div id="boot-error">
+    <b>Couldn't load the data files.</b>
+    <p>This page reads <code>clubs.csv</code> and <code>samples-*.csv</code> from the same directory, so it
+    needs to be served over HTTP — opening the file directly won't work. From the repo folder run
+    <code>python3 -m http.server</code> and open <a href="http://localhost:8000">localhost:8000</a>,
+    or enable GitHub Pages on the repository.</p>
+  </div>
+
+  <section id="sec-map">
+    <div class="sec-head">
+      <h2>All clubs on the map</h2>
+      <span class="hint">circle size = people inside now · click a club for its patterns</span>
+    </div>
+    <div class="map-card">
+      <div class="map-toolbar">
+        <input id="club-search" list="club-list" placeholder="Find a club — try “Kraków”…" autocomplete="off">
+        <datalist id="club-list"></datalist>
+        <div class="map-legend"><span>quiet</span><div class="ramp"></div><span id="legend-max">busy</span></div>
+      </div>
+      <div id="map"></div>
+      <div class="approx-note">Marker positions are approximate (placed by city/district). Edit <code>clubs-geo.json</code> to refine.</div>
+    </div>
+  </section>
+
+  <section id="club-panel">
+    <div class="sec-head"><h2>Club detail</h2></div>
+    <div class="club-card">
+      <div class="club-top">
+        <h3 id="cd-name"></h3><span class="addr" id="cd-addr"></span>
+        <div class="club-now" id="cd-now"></div>
+      </div>
+      <div class="chips" id="cd-chips"></div>
+      <div class="club-grid">
+        <div>
+          <p class="chart-title">Typical occupancy by weekday &amp; hour <span style="color:var(--ink-muted);font-weight:400">(median headcount, Warsaw time)</span></p>
+          <div class="heat" id="cd-heat"></div>
+          <div class="heat-legend"><span>quiet</span><div class="ramp" style="width:90px"></div><span>busy</span><span style="margin-left:10px">▢ no data yet</span></div>
+        </div>
+        <div>
+          <p class="chart-title">Last 48 hours</p>
+          <div id="cd-spark"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="sec-national">
+    <div class="sec-head">
+      <h2>When Poland trains</h2>
+      <span class="hint">every sample from every club, each club scaled to its own typical peak</span>
+    </div>
+    <div class="chart-card" style="margin-bottom:14px">
+      <p class="chart-title">National rhythm — weekday × hour <span style="color:var(--ink-muted);font-weight:400">(median relative occupancy, Warsaw time)</span></p>
+      <div class="heat" id="nat-heat"></div>
+      <div class="heat-legend"><span>quiet</span><div class="ramp" style="width:90px"></div><span>busy</span><span style="margin-left:10px">▢ no data yet</span></div>
+    </div>
+    <div class="charts-2">
+      <div class="chart-card">
+        <p class="chart-title">By hour of day</p>
+        <div id="hour-chart" class="skeleton">collecting…</div>
+      </div>
+      <div class="chart-card">
+        <p class="chart-title">By day of week</p>
+        <div id="dow-chart" class="skeleton">collecting…</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="sec-now">
+    <div class="sec-head">
+      <h2>Right now</h2>
+      <span class="hint" id="now-hint"></span>
+    </div>
+    <div class="boards">
+      <div class="board"><h3>🔥 Busiest clubs</h3><div id="board-busy"></div></div>
+      <div class="board"><h3>🌙 Quietest clubs</h3><div id="board-quiet"></div></div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="wrap cols">
+    <div>
+      <h4>How this works</h4>
+      <ul>
+        <li>A GitHub Actions cron polls the Wellfitness portal for live headcounts in all ~105 clubs.</li>
+        <li>Every sample is committed to this repo as CSV; this page reads those files directly and recomputes on each load.</li>
+        <li>No server anywhere — the charts get richer automatically as data accumulates.</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Reading the numbers</h4>
+      <ul>
+        <li>The portal reports no capacity, so clubs aren't compared on raw headcounts — each club is measured against its <i>own</i> typical peak.</li>
+        <li>Cells show the <b>median</b>, so a single holiday or bad sample doesn't skew the picture.</li>
+        <li>All times are Europe/Warsaw (DST-safe), converted from UTC storage.</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Data status</h4>
+      <ul id="foot-status"><li>loading…</li></ul>
+    </div>
+  </div>
+</footer>
+
+<div id="tip"></div>
+
+<script src="vendor/leaflet/leaflet.js"></script>
+<script>
+'use strict';
+
+/* ================= config & palette ================= */
+const FIRST_MONTH = '2026-07';        // first samples-YYYY-MM.csv in the repo
+const MAX_MONTH_FILES = 6;            // newest month files fetched per load
+const TARGET_DAYS = 21;               // README: ~3 weeks before patterns mean anything
+const MATURE = { clubSamples: 100, days: 7 };  // thresholds to switch to own-peak scaling
+const DOW = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+// sequential blue, dark-surface direction: low recedes into the page, high glows
+const RAMP = ['#0d366b','#104281','#184f95','#1c5cab','#256abf','#2a78d6','#3987e5','#5598e7','#6da7ec','#86b6ef','#9ec5f4','#b7d3f6','#cde2fb'];
+
+function rampColor(t) {               // t in [0,1]
+  if (!(t >= 0)) t = 0; if (t > 1) t = 1;
+  const x = t * (RAMP.length - 1), i = Math.min(RAMP.length - 2, Math.floor(x)), f = x - i;
+  const c1 = RAMP[i], c2 = RAMP[i + 1];
+  const h = c => [1,3,5].map(k => parseInt(c.substr(k,2),16));
+  const [r1,g1,b1] = h(c1), [r2,g2,b2] = h(c2);
+  return `rgb(${Math.round(r1+(r2-r1)*f)},${Math.round(g1+(g2-g1)*f)},${Math.round(b1+(b2-b1)*f)})`;
+}
+const median = a => { if (!a.length) return null; const s=[...a].sort((x,y)=>x-y), m=s.length>>1; return s.length%2 ? s[m] : (s[m-1]+s[m])/2; };
+const quantile = (a,q) => { if (!a.length) return null; const s=[...a].sort((x,y)=>x-y); const p=(s.length-1)*q, b=Math.floor(p); return s[b]+(s[Math.min(b+1,s.length-1)]-s[b])*(p-b); };
+const fmtInt = n => n.toLocaleString('en-US');
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ================= tiny CSV parser (handles quoted fields) ================= */
+function parseCSV(text) {
+  const rows = [], n = text.length; let row = [], cell = '', q = false;
+  for (let i = 0; i < n; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i+1] === '"') { cell += '"'; i++; } else q = false; }
+      else cell += c;
+    } else if (c === '"') q = true;
+    else if (c === ',') { row.push(cell); cell = ''; }
+    else if (c === '\n') { row.push(cell); if (row.length > 1 || row[0] !== '') rows.push(row); row = []; cell = ''; }
+    else if (c !== '\r') cell += c;
+  }
+  if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+  return rows;
+}
+
+/* ================= Warsaw time (DST-safe via Intl) ================= */
+const warsawFmt = new Intl.DateTimeFormat('en-US', { timeZone:'Europe/Warsaw', weekday:'short', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', hour12:false, minute:'2-digit' });
+const tsCache = new Map();            // ts string -> {ms, dow, hour, dateKey, hhmm}
+function tsInfo(ts) {
+  let v = tsCache.get(ts);
+  if (v) return v;
+  const ms = Date.parse(ts);
+  const parts = {};
+  for (const p of warsawFmt.formatToParts(ms)) parts[p.type] = p.value;
+  v = { ms,
+        dow: DOW.indexOf(parts.weekday.slice(0,3)),
+        hour: +parts.hour % 24,
+        dateKey: `${parts.year}-${parts.month}-${parts.day}`,
+        hhmm: `${parts.hour}:${parts.minute}` };
+  tsCache.set(ts, v);
+  return v;
+}
+
+/* ================= data loading ================= */
+async function fetchText(path) {
+  const r = await fetch(path + '?t=' + Math.floor(Date.now() / 3e5), { cache: 'no-store' });
+  if (!r.ok) throw new Error(path + ' → ' + r.status);
+  return r.text();
+}
+
+function monthList() {
+  const now = new Date();
+  const cur = now.getUTCFullYear() + '-' + String(now.getUTCMonth() + 1).padStart(2, '0');
+  const out = []; let [y, m] = FIRST_MONTH.split('-').map(Number);
+  while (true) {
+    const s = y + '-' + String(m).padStart(2, '0');
+    out.push(s);
+    if (s >= cur) break;
+    if (++m > 12) { m = 1; y++; }
+    if (out.length > 240) break;
+  }
+  return out.slice(-MAX_MONTH_FILES);
+}
+
+const state = { clubs: new Map(), rows: [], latestMs: 0, days: 0, natMax: 1, mature: false };
+
+async function loadData() {
+  const [clubsTxt, geo] = await Promise.all([
+    fetchText('clubs.csv'),
+    fetch('clubs-geo.json').then(r => r.ok ? r.json() : {}).catch(() => ({})),
+  ]);
+  const clubs = new Map();
+  for (const r of parseCSV(clubsTxt).slice(1)) {
+    if (r.length < 3) continue;
+    const id = +r[0], name = r[1];
+    clubs.set(id, { id, name, address: r[2], city: (name.split(',')[0] || name).trim(),
+                    lat: geo[id] ? geo[id][0] : null, lon: geo[id] ? geo[id][1] : null,
+                    samples: [] });
+  }
+
+  const monthTexts = await Promise.allSettled(monthList().map(m => fetchText(`samples-${m}.csv`)));
+  const rows = [];
+  for (const res of monthTexts) {
+    if (res.status !== 'fulfilled') continue;
+    for (const r of parseCSV(res.value).slice(1)) {
+      if (r.length < 3) continue;
+      const club = clubs.get(+r[1]);
+      if (!club) continue;
+      const info = tsInfo(r[0]), n = +r[2];
+      rows.push({ club: club.id, n, ...info });
+      club.samples.push({ ms: info.ms, n });
+    }
+  }
+  if (!rows.length) throw new Error('no sample rows');
+  rows.sort((a, b) => a.ms - b.ms);
+
+  const dateKeys = new Set(rows.map(r => r.dateKey));
+  state.clubs = clubs; state.rows = rows;
+  state.latestMs = rows[rows.length - 1].ms;
+  state.days = dateKeys.size;
+
+  for (const c of clubs.values()) {
+    c.samples.sort((a, b) => a.ms - b.ms);
+    const vals = c.samples.map(s => s.n);
+    c.count = vals.length;
+    c.max = vals.length ? Math.max(...vals) : 0;
+    c.p90 = vals.length ? quantile(vals, .9) : 0;
+    const last = c.samples[c.samples.length - 1];
+    c.now = last && state.latestMs - last.ms < 2 * 3600e3 ? last.n : null;
+  }
+  // early on, own-peak scaling is meaningless (max of a handful of samples);
+  // scale against the national field until each club has real history
+  const medCount = median([...clubs.values()].map(c => c.count)) || 0;
+  state.mature = state.days >= MATURE.days && medCount >= MATURE.clubSamples;
+  state.natMax = Math.max(1, quantile([...clubs.values()].map(c => c.now ?? 0), .95));
+}
+
+// relative busyness in [0,1] used for color everywhere
+function rel(club, n) {
+  if (n == null) return null;
+  const base = state.mature ? Math.max(club.p90, 1) : state.natMax;
+  return Math.min(1, n / base);
+}
+
+/* ================= tooltip ================= */
+const tip = document.getElementById('tip');
+function showTip(html, x, y) {
+  tip.innerHTML = html; tip.style.display = 'block';
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.min(x + 14, innerWidth - w - 10) + 'px';
+  tip.style.top = (y - h - 12 < 8 ? y + 16 : y - h - 12) + 'px';
+}
+const hideTip = () => { tip.style.display = 'none'; };
+document.addEventListener('scroll', hideTip, true);
+
+/* ================= hero KPIs ================= */
+function renderKPIs() {
+  const clubs = [...state.clubs.values()];
+  const nowTotal = clubs.reduce((s, c) => s + (c.now ?? 0), 0);
+  const withPeople = clubs.filter(c => (c.now ?? 0) > 0).length;
+  const totalSamples = state.rows.length;
+  const ageMin = Math.round((Date.now() - state.latestMs) / 60000);
+  const last = tsInfo(new Date(state.latestMs).toISOString());
+
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi"><div class="label">In clubs right now</div><div class="value">${fmtInt(nowTotal)}</div><div class="sub">people across Poland</div></div>
+    <div class="kpi"><div class="label">Clubs tracked</div><div class="value">${clubs.length}</div><div class="sub">${withPeople} with someone inside</div></div>
+    <div class="kpi"><div class="label">Samples collected</div><div class="value">${fmtInt(totalSamples)}</div><div class="sub">across ${state.days} day${state.days === 1 ? '' : 's'}</div></div>
+    <div class="kpi"><div class="label">Last sample</div><div class="value">${last.hhmm}</div><div class="sub">Warsaw time · ${ageMin < 90 ? ageMin + ' min ago' : Math.round(ageMin / 60) + ' h ago'}</div></div>`;
+
+  const dotEl = document.getElementById('live-dot');
+  dotEl.className = 'dot ' + (ageMin <= 60 ? 'live' : 'stale');
+  document.getElementById('live-text').textContent =
+    `${fmtInt(nowTotal)} in clubs · sampled ${ageMin < 90 ? ageMin + ' min ago' : Math.round(ageMin / 60) + ' h ago'}`;
+
+  if (state.days < TARGET_DAYS) {
+    const el = document.getElementById('collect');
+    el.style.display = 'flex';
+    document.getElementById('collect-txt').innerHTML =
+      `<b>Warming up — day ${state.days} of ~${TARGET_DAYS}.</b> Live numbers below are real; the weekly patterns fill in automatically as the tracker collects (August runs light — don't over-read month one).`;
+    document.getElementById('collect-bar').style.width = Math.max(3, Math.round(100 * state.days / TARGET_DAYS)) + '%';
+  }
+
+  document.getElementById('foot-status').innerHTML =
+    `<li>${fmtInt(totalSamples)} samples · ${clubs.length} clubs · ${state.days} day${state.days === 1 ? '' : 's'} of history</li>
+     <li>latest: ${new Date(state.latestMs).toISOString().slice(0, 16).replace('T', ' ')} UTC</li>
+     <li>page auto-refreshes every 15 min</li>`;
+}
+
+/* ================= map ================= */
+let map, markerByClub = new Map();
+function renderMap() {
+  map = L.map('map', { scrollWheelZoom: true, zoomSnap: .5 }).setView([52.1, 19.3], 6.5);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd', maxZoom: 19,
+  }).addTo(map);
+
+  const dl = document.getElementById('club-list');
+  for (const c of state.clubs.values()) {
+    if (c.lat == null) continue;
+    const r = rel(c, c.now);
+    const marker = L.circleMarker([c.lat, c.lon], {
+      radius: c.now == null ? 4 : 4 + Math.min(14, Math.sqrt(c.now) * 2.3),
+      color: 'rgba(255,255,255,.35)', weight: 1,
+      fillColor: c.now == null ? '#4a4f5c' : (c.now === 0 ? '#252a35' : rampColor(r)),
+      fillOpacity: .82,
+    }).addTo(map);
+    marker.bindPopup(
+      `<div class="popup-name">${esc(c.name)}</div>
+       <div class="popup-now">${c.now == null ? 'no recent sample' : '<b>' + c.now + '</b> ' + (c.now === 1 ? 'person' : 'people') + ' inside now'}</div>
+       <span class="popup-link" onclick="openClub(${c.id})">See patterns →</span>`);
+    markerByClub.set(c.id, marker);
+    const opt = document.createElement('option'); opt.value = c.name; dl.appendChild(opt);
+  }
+  document.getElementById('legend-max').textContent = state.mature ? 'busy (vs own peak)' : 'busy';
+
+  document.getElementById('club-search').addEventListener('change', e => {
+    const q = e.target.value.trim().toLowerCase();
+    const c = [...state.clubs.values()].find(c => c.name.toLowerCase() === q)
+           || [...state.clubs.values()].find(c => c.name.toLowerCase().includes(q));
+    if (c && c.lat != null) { map.setView([c.lat, c.lon], 12); markerByClub.get(c.id)?.openPopup(); openClub(c.id); }
+  });
+}
+
+/* ================= heatmap component ================= */
+function renderHeat(el, grid, maxV, tipFn) {
+  // grid[dow][hour] = value or null
+  let html = '<div></div>';
+  for (let h = 0; h < 24; h++) html += `<div class="tick">${h % 3 === 0 ? h : ''}</div>`;
+  for (let d = 0; d < 7; d++) {
+    html += `<div class="hlabel">${DOW[d]}</div>`;
+    for (let h = 0; h < 24; h++) {
+      const v = grid[d][h];
+      html += v == null
+        ? `<div class="cell" data-d="${d}" data-h="${h}"></div>`
+        : `<div class="cell" data-v="${v}" data-d="${d}" data-h="${h}" style="background:${rampColor(maxV ? v / maxV : 0)}"></div>`;
+    }
+  }
+  el.innerHTML = html;
+  el.onmousemove = e => {
+    const c = e.target.closest('.cell');
+    if (!c) return hideTip();
+    showTip(tipFn(+c.dataset.d, +c.dataset.h, c.dataset.v == null ? null : +c.dataset.v), e.clientX, e.clientY);
+  };
+  el.onmouseleave = hideTip;
+}
+
+function buckets(rowsFilter, valueFn) {
+  const g = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => []));
+  for (const r of state.rows) {
+    if (rowsFilter && !rowsFilter(r)) continue;
+    const v = valueFn(r);
+    if (v != null) g[r.dow][r.hour].push(v);
+  }
+  return g.map(day => day.map(cell => median(cell)));
+}
+
+/* ================= national section ================= */
+function renderNational() {
+  const norm = r => { const c = state.clubs.get(r.club); const b = state.mature ? Math.max(c.p90, 1) : state.natMax; return Math.min(1.5, r.n / b); };
+  const grid = buckets(null, norm);
+  const maxV = Math.max(.001, ...grid.flat().filter(v => v != null));
+  renderHeat(document.getElementById('nat-heat'), grid, maxV, (d, h, v) =>
+    v == null ? `<b>${DOW[d]} ${h}:00</b><div class="t2">no data yet</div>`
+              : `<b>${DOW[d]} ${h}:00–${(h + 1) % 24}:00</b><div class="t2">${Math.round(100 * v / maxV)}% of peak intensity</div>`);
+
+  // hour + weekday profiles from the same normalized values
+  const byHour = Array.from({ length: 24 }, () => []), byDow = Array.from({ length: 7 }, () => []);
+  for (const r of state.rows) { const v = norm(r); byHour[r.hour].push(v); byDow[r.dow].push(v); }
+  const hourVals = byHour.map(median), dowVals = byDow.map(median);
+  renderBars(document.getElementById('hour-chart'), hourVals, i => i % 3 === 0 ? String(i) : '',
+    (i, v) => `<b>${i}:00–${(i + 1) % 24}:00</b><div class="t2">median intensity ${Math.round(100 * v)}%</div>`);
+  renderBars(document.getElementById('dow-chart'), dowVals, i => DOW[i],
+    (i, v) => `<b>${DOW[i]}</b><div class="t2">median intensity ${Math.round(100 * v)}%</div>`);
+}
+
+function renderBars(el, vals, labelFn, tipFn) {
+  const defined = vals.map((v, i) => [v, i]).filter(([v]) => v != null);
+  if (!defined.length) { el.className = 'skeleton'; el.textContent = 'collecting…'; return; }
+  el.className = '';
+  const W = 600, H = 190, PB = 22, PT = 20, n = vals.length;
+  const bw = W / n, maxV = Math.max(.001, ...defined.map(([v]) => v));
+  const peak = defined.reduce((a, b) => (b[0] > a[0] ? b : a));
+  const low = defined.reduce((a, b) => (b[0] < a[0] ? b : a));
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block" role="img">`;
+  svg += `<line x1="0" y1="${H - PB}" x2="${W}" y2="${H - PB}" stroke="rgba(255,255,255,.14)"/>`;
+  for (let i = 0; i < n; i++) {
+    const v = vals[i];
+    const lbl = labelFn(i);
+    if (lbl) svg += `<text x="${(i + .5) * bw}" y="${H - 6}" font-size="10.5" fill="#7d8493" text-anchor="middle">${lbl}</text>`;
+    if (v == null) continue;
+    const bh = Math.max(1.5, (H - PB - PT) * v / maxV);
+    svg += `<rect class="bar" data-i="${i}" x="${i * bw + bw * .14}" y="${H - PB - bh}" width="${bw * .72}" height="${bh}" rx="3" fill="${rampColor(v / maxV)}"/>`;
+  }
+  // selective direct labels: peak and quietest only
+  for (const [v, i] of [peak, low]) {
+    const bh = Math.max(1.5, (H - PB - PT) * v / maxV);
+    svg += `<text x="${(i + .5) * bw}" y="${H - PB - bh - 5}" font-size="10.5" font-weight="700" fill="#f4f6fa" text-anchor="middle">${Math.round(100 * v)}%</text>`;
+  }
+  svg += '</svg>';
+  el.innerHTML = svg;
+  el.onmousemove = e => {
+    const b = e.target.closest('.bar');
+    if (!b) return hideTip();
+    const i = +b.dataset.i;
+    showTip(tipFn(i, vals[i]), e.clientX, e.clientY);
+  };
+  el.onmouseleave = hideTip;
+}
+
+/* ================= club detail ================= */
+function openClub(id) {
+  const c = state.clubs.get(id);
+  if (!c) return;
+  const panel = document.getElementById('club-panel');
+  panel.classList.add('open');
+  document.getElementById('cd-name').textContent = c.name;
+  document.getElementById('cd-addr').textContent = c.address;
+  document.getElementById('cd-now').innerHTML = c.now == null ? 'no recent sample' : `<b>${c.now}</b> inside now`;
+
+  const grid = buckets(r => r.club === id, r => r.n);
+  const maxV = Math.max(1, ...grid.flat().filter(v => v != null));
+  renderHeat(document.getElementById('cd-heat'), grid, maxV, (d, h, v) =>
+    v == null ? `<b>${DOW[d]} ${h}:00</b><div class="t2">no data yet</div>`
+              : `<b>${DOW[d]} ${h}:00–${(h + 1) % 24}:00</b><div class="t2">typically ~${Math.round(v)} ${Math.round(v) === 1 ? 'person' : 'people'}</div>`);
+
+  // chips: peak / quietest daytime cell once there's anything to say
+  const cells = [];
+  for (let d = 0; d < 7; d++) for (let h = 0; h < 24; h++) if (grid[d][h] != null) cells.push({ d, h, v: grid[d][h] });
+  const chips = [];
+  chips.push(`<span class="chip">peak seen: <b>${c.max}</b></span>`);
+  chips.push(`<span class="chip">samples: <b>${fmtInt(c.count)}</b></span>`);
+  if (cells.length >= 24) {
+    const day = cells.filter(x => x.h >= 6 && x.h <= 22);
+    const busiest = cells.reduce((a, b) => (b.v > a.v ? b : a));
+    const calm = (day.length ? day : cells).reduce((a, b) => (b.v < a.v ? b : a));
+    chips.push(`<span class="chip">🔥 busiest: <b>${DOW[busiest.d]} ${busiest.h}:00</b></span>`);
+    chips.push(`<span class="chip">🌙 calmest daytime: <b>${DOW[calm.d]} ${calm.h}:00</b></span>`);
+  } else {
+    chips.push(`<span class="chip">best-time picks appear after ~1 week of data</span>`);
+  }
+  document.getElementById('cd-chips').innerHTML = chips.join('');
+
+  renderSpark(document.getElementById('cd-spark'), c);
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+window.openClub = openClub;
+
+function renderSpark(el, club) {
+  const from = state.latestMs - 48 * 3600e3;
+  const pts = club.samples.filter(s => s.ms >= from);
+  if (pts.length < 6) { el.className = 'skeleton'; el.textContent = 'not enough points yet — check back tomorrow'; return; }
+  el.className = '';
+  const W = 420, H = 150, P = { l: 26, r: 16, t: 10, b: 20 };
+  const maxN = Math.max(1, ...pts.map(p => p.n));
+  const x = ms => P.l + (W - P.l - P.r) * (ms - from) / (48 * 3600e3);
+  const y = n => H - P.b - (H - P.t - P.b) * n / maxN;
+  let line = '', area = `M ${x(pts[0].ms)} ${H - P.b} `;
+  for (const p of pts) { const px = x(p.ms), py = y(p.n); line += (line ? 'L' : 'M') + ` ${px.toFixed(1)} ${py.toFixed(1)} `; area += `L ${px.toFixed(1)} ${py.toFixed(1)} `; }
+  area += `L ${x(pts[pts.length - 1].ms)} ${H - P.b} Z`;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block" role="img">
+    <line x1="${P.l}" y1="${H - P.b}" x2="${W - P.r}" y2="${H - P.b}" stroke="rgba(255,255,255,.14)"/>
+    <text x="${P.l - 6}" y="${y(maxN) + 4}" font-size="10" fill="#7d8493" text-anchor="end">${maxN}</text>
+    <text x="${P.l - 6}" y="${H - P.b + 3}" font-size="10" fill="#7d8493" text-anchor="end">0</text>
+    <path d="${area}" fill="rgba(57,135,229,.16)"/>
+    <path d="${line}" fill="none" stroke="#3987e5" stroke-width="2" stroke-linejoin="round"/>`;
+  // hour ticks every 12h
+  for (let k = 0; k <= 4; k++) {
+    const ms = from + k * 12 * 3600e3;
+    svg += `<text x="${x(ms)}" y="${H - 5}" font-size="9.5" fill="#7d8493" text-anchor="${k === 0 ? 'start' : k === 4 ? 'end' : 'middle'}">${tsInfo(new Date(ms).toISOString()).hhmm}</text>`;
+  }
+  svg += `<rect x="0" y="0" width="${W}" height="${H}" fill="transparent" id="spark-hit"/></svg>`;
+  el.innerHTML = svg;
+  const hit = el.querySelector('#spark-hit');
+  hit.onmousemove = e => {
+    const box = hit.getBoundingClientRect();
+    const ms = from + (e.clientX - box.left) / box.width * 48 * 3600e3;
+    let best = pts[0];
+    for (const p of pts) if (Math.abs(p.ms - ms) < Math.abs(best.ms - ms)) best = p;
+    const t = tsInfo(new Date(best.ms).toISOString());
+    showTip(`<b>${best.n} ${best.n === 1 ? 'person' : 'people'}</b><div class="t2">${DOW[t.dow]} ${t.hhmm} Warsaw</div>`, e.clientX, e.clientY);
+  };
+  hit.onmouseleave = hideTip;
+}
+
+/* ================= leaderboards ================= */
+function renderBoards() {
+  const withNow = [...state.clubs.values()].filter(c => c.now != null);
+  const maxNow = Math.max(1, ...withNow.map(c => c.now));
+  const rowHtml = c => `
+    <div class="row" onclick="openClub(${c.id})">
+      <span class="rname">${esc(c.name)}</span><span class="rval">${c.now}</span>
+      <div class="rbar"><i style="width:${Math.round(100 * c.now / maxNow)}%"></i></div>
+    </div>`;
+  const busy = [...withNow].sort((a, b) => b.now - a.now).slice(0, 8);
+  const quiet = [...withNow].sort((a, b) => a.now - b.now).slice(0, 8);
+  document.getElementById('board-busy').innerHTML = busy.map(rowHtml).join('');
+  document.getElementById('board-quiet').innerHTML = quiet.map(rowHtml).join('');
+  document.getElementById('now-hint').textContent =
+    'raw headcounts at the latest sample — the portal publishes no capacity, so big clubs naturally rank higher';
+}
+
+/* ================= boot ================= */
+async function boot() {
+  try {
+    await loadData();
+  } catch (err) {
+    console.error(err);
+    document.getElementById('boot-error').style.display = 'block';
+    document.getElementById('live-text').textContent = 'data unavailable';
+    return;
+  }
+  renderKPIs();
+  if (!map) renderMap(); else refreshMarkers();
+  renderNational();
+  renderBoards();
+}
+function refreshMarkers() {
+  for (const c of state.clubs.values()) {
+    const m = markerByClub.get(c.id);
+    if (!m) continue;
+    const r = rel(c, c.now);
+    m.setRadius(c.now == null ? 4 : 4 + Math.min(14, Math.sqrt(c.now) * 2.3));
+    m.setStyle({ fillColor: c.now == null ? '#4a4f5c' : (c.now === 0 ? '#252a35' : rampColor(r)) });
+  }
+}
+boot();
+setInterval(boot, 15 * 60e3);
+</script>
+</body>
+</html>
