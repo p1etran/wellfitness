@@ -109,10 +109,34 @@ the source. Repo is private.
 
 ## Analysis
 
-Not written yet. The plan: read `clubs.csv` plus a glob of `samples-*.csv`,
-merge on `club_id`, convert `ts` to `Europe/Warsaw`, pivot to weekday × hour
-using the **median** (not the mean, so one holiday or bad sample doesn't skew
-a cell), render as a heatmap.
+Lives in `index.html` — a static, dependency-free dashboard ("Wellfitness
+Pulse") that reads `clubs.csv` and the `samples-*.csv` files directly in the
+browser and recomputes everything on each load, so every bot commit enriches
+it with zero extra work. It shows:
 
-Needs roughly 3 weeks of data before it means anything, and August is
-atypical — don't read much into the first month.
+- a Leaflet map of all clubs (dark CARTO basemap), markers sized by current
+  headcount — coordinates come from `clubs-geo.json`, which is hand-placed
+  and approximate; edit it to refine positions;
+- per-club detail: weekday × hour **median** heatmap, last-48 h sparkline,
+  busiest/calmest picks;
+- national weekday × hour rhythm plus by-hour and by-day profiles, with each
+  club scaled to its own typical peak (90th percentile) since there is no
+  capacity figure to normalise against;
+- "right now" busiest/quietest leaderboards from the latest sample.
+
+All times are converted to `Europe/Warsaw` via `Intl` (DST-safe). While the
+dataset is younger than ~1 week the page scales colours against the national
+field instead of each club's own (meaningless) peak, and shows a
+"warming up — day N of ~21" banner. Only the newest 6 monthly sample files
+are fetched per load to keep payloads bounded.
+
+Leaflet is vendored in `vendor/leaflet/` so the only runtime network
+dependency is the map tiles.
+
+**Serving it:** the page fetches sibling CSV files, so it needs HTTP —
+`python3 -m http.server` in the repo root, or GitHub Pages (requires the repo
+to be public, or a paid plan, since Pages isn't available on private free
+repos).
+
+Needs roughly 3 weeks of data before the patterns mean anything, and August
+is atypical — don't read much into the first month.
