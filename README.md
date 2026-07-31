@@ -113,13 +113,14 @@ put the token's expiry date in a calendar.
   apart, with no failures in between. GitHub was dropping the firings, not
   failing them. Editing the cron expression cannot fix this; the trigger has
   to come from outside (see *Polling cadence* below).
-- **The minute budget is the real constraint.** Private repos on the GitHub
-  Free plan get 2,000 Linux minutes/month, and every job is billed rounded up
-  to a full minute. 30-minute polling is ~1,460 runs/month ≈ 1,460 min and
-  fits; 15-minute polling does not, and collection silently stops partway
-  through the month when the allowance runs out. This is also why `poll.ps1`
-  keeps its startup jitter under 15s — the job runs in ~15s, so a longer
-  random sleep would push some runs into a second billed minute for nothing.
+- **Minutes stopped mattering when the repo went public.** Actions on public
+  repos is free and unmetered, so polling frequency is no longer a budget
+  question. It *was* the binding constraint while the repo was private: 2,000
+  Linux minutes/month, every job billed rounded up to a full minute, so
+  15-minute polling (~2,900 runs/month) ran the allowance dry around day 21
+  and silently stopped collecting for the rest of every month. If this repo is
+  ever made private again, that constraint comes straight back — drop to
+  30-minute polling at the same time.
 - **UTC storage.** Analysis must convert to `Europe/Warsaw`, not a hardcoded
   offset, or the DST change in late October shifts half the dataset by an hour.
 - **Gaps are normal even when everything works.** Expect ~40–46 samples/day
@@ -163,10 +164,28 @@ are fetched per load to keep payloads bounded.
 Leaflet is vendored in `vendor/leaflet/` so the only runtime network
 dependency is the map tiles.
 
-**Serving it:** the page fetches sibling CSV files, so it needs HTTP —
-`python3 -m http.server` in the repo root, or GitHub Pages (requires the repo
-to be public, or a paid plan, since Pages isn't available on private free
-repos).
-
 Needs roughly 3 weeks of data before the patterns mean anything, and August
 is atypical — don't read much into the first month.
+
+### Deployment
+
+Live at **https://p1etran.github.io/wellfitness/**, served by GitHub Pages
+from `main` at the repo root (Settings → Pages → Deploy from a branch).
+
+Because Pages serves the repository contents directly, every bot commit
+republishes the site — there is no build step and nothing to redeploy. The
+data files the page reads *are* the deployed files.
+
+The empty **`.nojekyll`** at the repo root is load-bearing: without it Pages
+runs the contents through Jekyll, which applies its own exclude rules to
+directories like `vendor/` and can quietly drop the vendored Leaflet build.
+`.nojekyll` turns the build into a plain file copy.
+
+Locally the page needs HTTP, since it fetches sibling CSV files and browsers
+block that over `file://` — run `python3 -m http.server` in the repo root and
+open `localhost:8000`.
+
+**Payload grows with the dataset.** The page fetches the newest 6 monthly
+sample files and parses them in the browser: ~20 MB and ~900k rows after six
+months at 30-minute polling, double that at 15-minute. Comfortable for now,
+but it will need precomputed aggregates rather than raw CSV before that.

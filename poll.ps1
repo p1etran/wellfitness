@@ -14,9 +14,10 @@ $hdr = @{
     'Accept'           = 'application/json, text/plain, */*'
 }
 
-# Small jitter so the poll doesn't hit the portal at an exact fixed second.
-# Kept short deliberately: Actions bills each job rounded up to a full minute,
-# and the rest of the job runs in ~15s, so this must not push it past 60s.
+# Small jitter so the poll doesn't hit the portal at the same fixed second
+# on every run. Short on purpose — it delays the sample relative to its
+# intended slot, and the analysis buckets by hour, so there's nothing to gain
+# from a long one.
 if ($env:CI) { Start-Sleep -Seconds (Get-Random -Minimum 0 -Maximum 15) }
 
 # --- login ---

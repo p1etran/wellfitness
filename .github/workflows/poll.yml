@@ -1,12 +1,13 @@
 name: gym-poll
 on:
   # Real cadence comes from an external cron service calling the
-  # workflow_dispatch API every 30 min — GitHub's own scheduler throttles
-  # high-frequency crons on free private repos down to a few runs a day.
-  # This schedule is only a heartbeat so collection survives that service
-  # going away, and stays sparse to protect the 2,000 min/month budget.
+  # workflow_dispatch API — GitHub's own scheduler throttles high-frequency
+  # crons down to a few runs a day, so this schedule is a fallback, not the
+  # primary trigger. It exists so collection survives that service going
+  # away. Minutes are free on public repos, so it costs nothing to leave a
+  # frequent expression here and let GitHub fire it whenever it feels like.
   schedule:
-    - cron: '13 */6 * * *'
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 permissions:
   contents: write
