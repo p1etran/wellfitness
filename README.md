@@ -117,18 +117,49 @@ it with zero extra work. It shows:
 - a Leaflet map of all clubs (dark CARTO basemap), markers sized by current
   headcount — coordinates come from `clubs-geo.json`, which is hand-placed
   and approximate; edit it to refine positions;
-- per-club detail: weekday × hour **median** heatmap, last-48 h sparkline,
-  busiest/calmest picks;
+- a searchable, sortable list of all 105 clubs;
 - national weekday × hour rhythm plus by-hour and by-day profiles, with each
   club scaled to its own typical peak (90th percentile) since there is no
   capacity figure to normalise against;
 - "right now" busiest/quietest leaderboards from the latest sample.
 
+### Club detail — the part that answers the actual question
+
+The club panel sits at the top of the page and is where the real analysis
+lives:
+
+- **Right now vs typical** — the live headcount against the median for *this*
+  weekday and hour, with the interquartile range and the sample count behind
+  it. Falls back to the all-week profile for that hour when the exact
+  weekday × hour cell has fewer than 3 samples.
+- **Your quietest slot each day**, driven by an **"I can train between X and
+  Y" control**. This matters: several clubs run 24/7, so an unconstrained
+  "quietest hour" is always the first hour of whatever window you allow —
+  a useless answer. Constrain it to the hours you'd really go (say 17:00–21:00)
+  and the picks become actionable. The window persists in `localStorage`.
+- **Next quiet window** — scans forward up to a week for the first in-window
+  hour whose median sits at or below the club's own 25th-percentile
+  in-window level.
+- **Stat strip** — typical (median), busy end (p90), peak seen, busiest and
+  calmest slots, predictability (median within-slot IQR), and weekend vs
+  weekday delta.
+- **Charts** — weekday × hour median heatmap; a pooled "typical day" line
+  with the middle-50% band shaded; seven weekday curves on a shared scale;
+  daily peak vs daily median over the whole collection period; and an
+  occupancy histogram. Every chart has a hover tooltip, and the hour and
+  day-by-day charts have "show numbers" table views.
+
+**"My club"** — the ★ button pins a club to `localStorage`; the page opens
+straight to it on load. `DEFAULT_HOME_CLUB` in `index.html` is the fallback
+for a fresh browser (currently 93, Warszawa Wołoska).
+
 All times are converted to `Europe/Warsaw` via `Intl` (DST-safe). While the
 dataset is younger than ~1 week the page scales colours against the national
 field instead of each club's own (meaningless) peak, and shows a
 "warming up — day N of ~21" banner. Only the newest 6 monthly sample files
-are fetched per load to keep payloads bounded.
+are fetched per load to keep payloads bounded. Per-club aggregates are
+computed once per club and cached, and the cache is cleared whenever fresh
+samples load.
 
 Leaflet is vendored in `vendor/leaflet/` so the only runtime network
 dependency is the map tiles.

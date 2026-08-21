@@ -50,7 +50,10 @@
     font-size: 12.5px; color: var(--ink-2);
     background: var(--surface); border: 1px solid var(--hairline);
     padding: 6px 12px; border-radius: 999px; white-space: nowrap;
+    min-width: 0; overflow: hidden;            /* must be able to shrink on narrow screens */
   }
+  #live-text { overflow: hidden; text-overflow: ellipsis; }
+  .nav .logo { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-muted); flex: none; }
   .dot.live  { background: var(--good); box-shadow: 0 0 0 0 rgba(12,163,12,.5); animation: pulse 2.2s infinite; }
   .dot.stale { background: #fab219; }
@@ -129,9 +132,113 @@
   .club-grid { display: grid; grid-template-columns: 1fr; gap: 22px; margin-top: 18px; }
   @media (min-width: 900px) { .club-grid { grid-template-columns: 3fr 2fr; } }
   .chart-title { font-size: 13px; font-weight: 650; color: var(--ink-2); margin: 0 0 8px; }
+  .chart-title .sub { color: var(--ink-muted); font-weight: 400; }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
   .chip { font-size: 12.5px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--hairline); background: var(--surface-2); color: var(--ink-2); }
   .chip b { color: var(--ink); }
+
+  /* ---------- home-club star ---------- */
+  .star-btn {
+    font: 12.5px var(--sans); cursor: pointer; white-space: nowrap;
+    background: var(--surface-2); color: var(--ink-2);
+    border: 1px solid var(--hairline); border-radius: 999px; padding: 5px 12px;
+  }
+  .star-btn:hover { color: var(--ink); border-color: rgba(255,255,255,.2); }
+  .star-btn.on { color: #f5c451; border-color: rgba(245,196,81,.45); background: rgba(245,196,81,.10); }
+
+  /* ---------- "right now vs typical" verdict ---------- */
+  .verdict {
+    display: grid; gap: 18px; align-items: center; margin-top: 16px;
+    grid-template-columns: 1fr; background: var(--surface-2);
+    border: 1px solid var(--hairline); border-radius: var(--radius); padding: 16px 18px;
+  }
+  @media (min-width: 760px) { .verdict { grid-template-columns: auto 1fr; } }
+  .verdict .big { font-size: 40px; font-weight: 750; letter-spacing: -.02em; line-height: 1; }
+  .verdict .big small { font-size: 14px; font-weight: 500; color: var(--ink-muted); margin-left: 6px; letter-spacing: 0; }
+  .verdict .say { font-size: 15px; }
+  .verdict .say b { font-weight: 700; }
+  .verdict .expl { color: var(--ink-2); font-size: 13px; margin-top: 4px; }
+  .dev-pill {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 650;
+    border-radius: 999px; padding: 4px 11px; border: 1px solid;
+  }
+  .dev-pill.up   { color: #ef8b5c; border-color: rgba(217,89,38,.5);  background: rgba(217,89,38,.12); }
+  .dev-pill.down { color: #7fc4f2; border-color: rgba(57,135,229,.5); background: rgba(57,135,229,.12); }
+  .dev-pill.flat { color: var(--ink-2); border-color: var(--hairline); background: rgba(255,255,255,.05); }
+  /* deviation scale: cool = quieter than usual, neutral = typical, warm = busier */
+  .dev-scale { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--ink-muted); margin-top: 10px; }
+  .dev-scale .ramp2 { width: 130px; height: 8px; border-radius: 4px; background: linear-gradient(90deg,#3987e5,#6f7a8c,#d95926); }
+
+  /* ---------- stat grid ---------- */
+  .statgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 10px; margin-top: 16px; }
+  .stat { background: var(--surface-2); border: 1px solid var(--hairline); border-radius: 11px; padding: 11px 13px; }
+  .stat .k { font-size: 11px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .06em; }
+  .stat .v { font-size: 20px; font-weight: 700; margin-top: 3px; letter-spacing: -.01em; }
+  .stat .n { font-size: 11.5px; color: var(--ink-2); margin-top: 1px; }
+
+  /* ---------- best-times ---------- */
+  .besttimes { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 8px; }
+  .bt { background: var(--surface-2); border: 1px solid var(--hairline); border-radius: 11px; padding: 10px 12px; }
+  .bt .d { font-size: 11px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .06em; }
+  .bt .t { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .bt .p { font-size: 11.5px; color: var(--ink-2); }
+  .bt.today { border-color: rgba(57,135,229,.5); background: rgba(57,135,229,.10); }
+  .bt.best { border-color: rgba(12,163,12,.55); background: rgba(12,163,12,.10); }
+  .bt .tagline { font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--good); margin-top: 3px; }
+  .bt-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .winctl { margin-left: auto; font-size: 12.5px; color: var(--ink-muted); display: flex; align-items: center; gap: 6px; }
+  .winctl select {
+    background: var(--surface-2); color: var(--ink); border: 1px solid var(--hairline);
+    border-radius: 8px; padding: 4px 8px; font: 12.5px var(--sans); font-variant-numeric: tabular-nums;
+  }
+  .callout {
+    margin-top: 12px; border-left: 3px solid var(--accent); background: var(--surface-2);
+    border-radius: 0 11px 11px 0; padding: 11px 14px; font-size: 13.5px; color: var(--ink-2);
+  }
+  .callout b { color: var(--ink); }
+
+  /* ---------- small multiples ---------- */
+  .smallmults { display: grid; grid-template-columns: repeat(auto-fit, minmax(152px, 1fr)); gap: 10px; }
+  @media (min-width: 1120px) { .smallmults { grid-template-columns: repeat(7, 1fr); } }   /* one clean week strip */
+  .sm { background: var(--surface-2); border: 1px solid var(--hairline); border-radius: 11px; padding: 9px 10px 5px; }
+  .sm .h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 11px; color: var(--ink-2); margin-bottom: 3px; }
+  .sm .h b { color: var(--ink); font-size: 12.5px; }
+  .sm .h i { font-style: normal; color: var(--ink-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ---------- table view ---------- */
+  .tbl-toggle {
+    font: 12.5px var(--sans); cursor: pointer; background: none; color: var(--ink-muted);
+    border: 1px solid var(--hairline); border-radius: 999px; padding: 4px 11px; margin-left: auto;
+  }
+  .tbl-toggle:hover { color: var(--ink-2); }
+  .tblwrap { display: none; margin-top: 12px; overflow-x: auto; }
+  .tblwrap.open { display: block; }
+  table.data { border-collapse: collapse; font-size: 12.5px; width: 100%; min-width: 460px; }
+  table.data th, table.data td { text-align: right; padding: 5px 9px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+  table.data th { color: var(--ink-muted); font-weight: 600; text-transform: uppercase; font-size: 10.5px; letter-spacing: .06em; }
+  table.data td:first-child, table.data th:first-child { text-align: left; font-variant-numeric: normal; }
+  table.data caption { caption-side: top; text-align: left; color: var(--ink-muted); font-size: 12px; padding-bottom: 6px; }
+
+  /* ---------- club picker ---------- */
+  .picker-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .picker-tools input, .picker-tools select {
+    background: var(--surface-2); color: var(--ink); border: 1px solid var(--hairline);
+    border-radius: 9px; padding: 8px 12px; font: 13.5px var(--sans);
+  }
+  .picker-tools input { width: 260px; max-width: 100%; }
+  .picker-tools input::placeholder { color: var(--ink-muted); }
+  .clublist { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; max-height: 420px; overflow-y: auto; padding-right: 4px; }
+  .cl {
+    display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px;
+    padding: 9px 12px; cursor: pointer; font-size: 13px;
+  }
+  .cl:hover { border-color: rgba(255,255,255,.22); }
+  .cl.is-home { border-color: rgba(245,196,81,.45); }
+  .cl .cn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cl .cv { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+  .cl .sub { grid-column: 1 / -1; font-size: 11.5px; color: var(--ink-muted); margin-top: -2px;
+             overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* ---------- heatmap ---------- */
   .heat { display: grid; grid-template-columns: 34px repeat(24, 1fr); gap: 2px; }
@@ -197,8 +304,8 @@
 
   <div class="hero">
     <h1>Who's at the gym, <span style="color:var(--accent)">right now?</span></h1>
-    <p class="lede">Live headcounts from every Wellfitness club in Poland, sampled around the clock —
-      building toward one answer: <b style="color:var(--ink)">when is your club quietest?</b></p>
+    <p class="lede">Live headcounts from every Wellfitness club in Poland, sampled around the clock,
+      then turned into the only thing that matters: <b style="color:var(--ink)">when is your club actually quiet?</b></p>
     <div class="kpis" id="kpis"></div>
     <div class="collect" id="collect" style="display:none">
       <div class="txt" id="collect-txt"></div>
@@ -213,6 +320,80 @@
     <code>python3 -m http.server</code> and open <a href="http://localhost:8000">localhost:8000</a>,
     or enable GitHub Pages on the repository.</p>
   </div>
+
+  <section id="club-panel">
+    <div class="sec-head">
+      <h2 id="cd-heading">Club detail</h2>
+      <span class="hint" id="cd-hint"></span>
+    </div>
+    <div class="club-card">
+
+      <div class="club-top">
+        <h3 id="cd-name"></h3>
+        <span class="addr" id="cd-addr"></span>
+        <div class="club-now" id="cd-now"></div>
+        <button class="star-btn" id="cd-star" type="button"></button>
+      </div>
+
+      <div class="verdict" id="cd-verdict"></div>
+      <div class="statgrid" id="cd-stats"></div>
+      <div class="chips" id="cd-chips"></div>
+
+      <div style="margin-top:28px">
+        <div class="bt-head">
+          <p class="chart-title" style="margin:0">Your quietest slot each day
+            <span class="sub">— median headcount, Warsaw time</span></p>
+          <label class="winctl">I can train between
+            <select id="win-from"></select> and <select id="win-to"></select>
+          </label>
+        </div>
+        <div class="besttimes" id="cd-best"></div>
+        <div class="callout" id="cd-next"></div>
+      </div>
+
+      <div class="club-grid">
+        <div>
+          <p class="chart-title">Typical occupancy by weekday &amp; hour <span class="sub">(median headcount, Warsaw time)</span></p>
+          <div class="heat" id="cd-heat"></div>
+          <div class="heat-legend"><span>quiet</span><div class="ramp" style="width:90px"></div><span>busy</span><span style="margin-left:10px">▢ no data yet</span></div>
+        </div>
+        <div>
+          <p class="chart-title">Last 48 hours</p>
+          <div id="cd-spark"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:28px">
+        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+          <p class="chart-title" style="margin:0">A typical day <span class="sub">— all weekdays pooled; line = median, shading = middle 50% of samples</span></p>
+          <button class="tbl-toggle" type="button" data-target="cd-hour-tbl">show numbers</button>
+        </div>
+        <div id="cd-hour-band"></div>
+        <div class="tblwrap" id="cd-hour-tbl"></div>
+      </div>
+
+      <div style="margin-top:28px">
+        <p class="chart-title">Every day, side by side <span class="sub">— median headcount by hour, shared scale · label = that day's peak</span></p>
+        <div class="smallmults" id="cd-mults"></div>
+      </div>
+
+      <div class="charts-2" style="margin-top:28px">
+        <div>
+          <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+            <p class="chart-title" style="margin:0">Day by day <span class="sub">— is it getting busier?</span></p>
+            <button class="tbl-toggle" type="button" data-target="cd-daily-tbl">show numbers</button>
+          </div>
+          <div id="cd-daily"></div>
+          <div class="tblwrap" id="cd-daily-tbl"></div>
+        </div>
+        <div>
+          <p class="chart-title">How busy is it, usually? <span class="sub">— share of all samples</span></p>
+          <div id="cd-dist"></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
 
   <section id="sec-map">
     <div class="sec-head">
@@ -230,26 +411,22 @@
     </div>
   </section>
 
-  <section id="club-panel">
-    <div class="sec-head"><h2>Club detail</h2></div>
-    <div class="club-card">
-      <div class="club-top">
-        <h3 id="cd-name"></h3><span class="addr" id="cd-addr"></span>
-        <div class="club-now" id="cd-now"></div>
-      </div>
-      <div class="chips" id="cd-chips"></div>
-      <div class="club-grid">
-        <div>
-          <p class="chart-title">Typical occupancy by weekday &amp; hour <span style="color:var(--ink-muted);font-weight:400">(median headcount, Warsaw time)</span></p>
-          <div class="heat" id="cd-heat"></div>
-          <div class="heat-legend"><span>quiet</span><div class="ramp" style="width:90px"></div><span>busy</span><span style="margin-left:10px">▢ no data yet</span></div>
-        </div>
-        <div>
-          <p class="chart-title">Last 48 hours</p>
-          <div id="cd-spark"></div>
-        </div>
-      </div>
+  <section id="sec-picker">
+    <div class="sec-head">
+      <h2>Every club</h2>
+      <span class="hint">click one to see its patterns · ★ pins it as your club</span>
     </div>
+    <div class="picker-tools">
+      <input id="picker-search" placeholder="Filter by name or address…" autocomplete="off">
+      <select id="picker-sort">
+        <option value="name">sort: name</option>
+        <option value="now">sort: busiest now</option>
+        <option value="quiet">sort: quietest now</option>
+        <option value="peak">sort: biggest club</option>
+      </select>
+      <span class="hint" id="picker-count"></span>
+    </div>
+    <div class="clublist" id="clublist"></div>
   </section>
 
   <section id="sec-national">
@@ -324,6 +501,14 @@ const MAX_MONTH_FILES = 6;            // newest month files fetched per load
 const TARGET_DAYS = 21;               // README: ~3 weeks before patterns mean anything
 const MATURE = { clubSamples: 100, days: 7 };  // thresholds to switch to own-peak scaling
 const DOW = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const DOW_LONG = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+// "quietest" picks are restricted to the hours you'd actually train in — otherwise a
+// 24 h club always answers 04:00. User-adjustable; the heatmap still shows all 24 hours.
+const ACTIVE_DEFAULT = { from: 6, to: 23 };
+const WINDOW_KEY = 'wf.window';
+// "my club" — persisted in localStorage; this is only the fallback for a fresh browser.
+const DEFAULT_HOME_CLUB = 93;         // Warszawa, Wołoska 16
+const HOME_KEY = 'wf.homeClub';
 // sequential blue, dark-surface direction: low recedes into the page, high glows
 const RAMP = ['#0d366b','#104281','#184f95','#1c5cab','#256abf','#2a78d6','#3987e5','#5598e7','#6da7ec','#86b6ef','#9ec5f4','#b7d3f6','#cde2fb'];
 
@@ -422,11 +607,12 @@ async function loadData() {
       if (!club) continue;
       const info = tsInfo(r[0]), n = +r[2];
       rows.push({ club: club.id, n, ...info });
-      club.samples.push({ ms: info.ms, n });
+      club.samples.push({ ms: info.ms, n, dow: info.dow, hour: info.hour, dateKey: info.dateKey });
     }
   }
   if (!rows.length) throw new Error('no sample rows');
   rows.sort((a, b) => a.ms - b.ms);
+  statsCache.clear();                   // fresh samples ⇒ recompute per-club aggregates
 
   const dateKeys = new Set(rows.map(r => r.dateKey));
   state.clubs = clubs; state.rows = rows;
@@ -623,43 +809,526 @@ function renderBars(el, vals, labelFn, tipFn) {
   el.onmouseleave = hideTip;
 }
 
+/* ================= per-club statistics ================= */
+// two-series categorical pair, validated (dark surface #12151c):
+// lightness band, chroma floor, CVD separation ΔE 24.7, normal ΔE 30.3, contrast — all pass
+const SERIES = { peak: '#d9673a', median: '#3987e5' };
+const statsCache = new Map();
+const hhmm = h => String(h).padStart(2, '0') + ':00';
+const people = n => `${n} ${n === 1 ? 'person' : 'people'}`;
+
+function clubStats(id) {
+  let st = statsCache.get(id);
+  if (st) return st;
+  const c = state.clubs.get(id);
+
+  const cells = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => []));
+  const hourV = Array.from({ length: 24 }, () => []);
+  const dowV  = Array.from({ length: 7 }, () => []);
+  const dayMap = new Map();
+  const all = [];
+  for (const s of c.samples) {
+    cells[s.dow][s.hour].push(s.n);
+    hourV[s.hour].push(s.n);
+    dowV[s.dow].push(s.n);
+    all.push(s.n);
+    let d = dayMap.get(s.dateKey);
+    if (!d) dayMap.set(s.dateKey, d = { key: s.dateKey, dow: s.dow, vals: [] });
+    d.vals.push(s.n);
+  }
+  const q = v => v.length ? { p25: quantile(v, .25), p50: median(v), p75: quantile(v, .75), n: v.length } : null;
+  const gridQ = cells.map(r => r.map(q));
+  const grid  = gridQ.map(r => r.map(x => x ? x.p50 : null));
+  const hour  = hourV.map(q);
+  const dow   = dowV.map(q);
+  const days  = [...dayMap.values()].sort((a, b) => (a.key < b.key ? -1 : 1))
+                 .map(d => ({ key: d.key, dow: d.dow, med: median(d.vals), max: Math.max(...d.vals), n: d.vals.length }));
+
+  // only trust a weekday×hour cell once it has a few samples behind it
+  const solid = [];
+  for (let d = 0; d < 7; d++) for (let h = 0; h < 24; h++) {
+    const x = gridQ[d][h];
+    if (x && x.n >= 3) solid.push({ d, h, ...x });
+  }
+  const busiest = solid.length ? solid.reduce((a, b) => (b.p50 > a.p50 ? b : a)) : null;
+
+  const wk = [], we = [];
+  for (const s of c.samples) (s.dow <= 4 ? wk : we).push(s.n);
+  const spreads = solid.map(x => x.p75 - x.p25);
+
+  st = {
+    id, grid, gridQ, hour, dow, days, busiest, solid,
+    med: median(all), p25: quantile(all, .25), p75: quantile(all, .75), p90: quantile(all, .9),
+    max: all.length ? Math.max(...all) : 0,
+    spread: spreads.length ? median(spreads) : null,
+    weekdayMed: median(wk), weekendMed: median(we),
+    total: all.length, all,
+    enough: solid.length >= 40,
+  };
+  statsCache.set(id, st);
+  return st;
+}
+
+// how does the newest reading compare with what this club normally does at this
+// weekday+hour? Falls back to the all-week hour profile when the exact cell is thin.
+function nowVsTypical(c, st) {
+  if (c.now == null) return null;
+  const t = tsInfo(new Date(state.latestMs).toISOString());
+  const cell = st.gridQ[t.dow][t.hour];
+  const ref = (cell && cell.n >= 3) ? cell : st.hour[t.hour];
+  if (!ref || ref.p50 == null) return null;
+  return {
+    dow: t.dow, hour: t.hour, ref,
+    exact: ref === cell,
+    diff: ref.p50 > 0 ? (c.now - ref.p50) / ref.p50 : null,
+  };
+}
+
+/* ---------- the hours you can actually train in ---------- */
+function getWindow() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(WINDOW_KEY) || 'null');
+    if (raw && Number.isInteger(raw.from) && Number.isInteger(raw.to) &&
+        raw.from >= 0 && raw.to <= 23 && raw.from <= raw.to) return raw;
+  } catch (e) { /* ignore */ }
+  return { ...ACTIVE_DEFAULT };
+}
+function setWindow(w) {
+  try { localStorage.setItem(WINDOW_KEY, JSON.stringify(w)); } catch (e) { /* ignore */ }
+}
+const inWindow = (h, w) => h >= w.from && h <= w.to;
+
+// quietest trainable slot per weekday, and overall, for a given window
+function picks(st, w) {
+  const act = st.solid.filter(x => inWindow(x.h, w));
+  const perDay = [];
+  for (let d = 0; d < 7; d++) {
+    const row = act.filter(x => x.d === d);
+    perDay.push(row.length ? row.reduce((a, b) => (b.p50 < a.p50 ? b : a)) : null);
+  }
+  return { act, perDay, calmest: act.length ? act.reduce((a, b) => (b.p50 < a.p50 ? b : a)) : null };
+}
+
+// scanning forward from the newest sample, when is this club next below its own
+// quiet threshold (the 25th percentile of its in-window medians)?
+function nextQuiet(st, w) {
+  const meds = picks(st, w).act.map(x => x.p50);
+  if (meds.length < 10) return null;
+  const thr = quantile(meds, .25);
+  for (let k = 1; k <= 168; k++) {
+    const ms = state.latestMs + k * 3600e3;
+    const t = tsInfo(new Date(ms).toISOString());
+    if (!inWindow(t.hour, w)) continue;
+    const v = st.grid[t.dow][t.hour];
+    if (v == null || v > thr) continue;
+    return { ms, dow: t.dow, hour: t.hour, v, thr };
+  }
+  return null;
+}
+
+function dayLabel(ms) {
+  const t = tsInfo(new Date(ms).toISOString());
+  const today = tsInfo(new Date(state.latestMs).toISOString()).dateKey;
+  const tmrw  = tsInfo(new Date(state.latestMs + 864e5).toISOString()).dateKey;
+  if (t.dateKey === today) return 'today';
+  if (t.dateKey === tmrw) return 'tomorrow';
+  return DOW_LONG[t.dow];
+}
+
+/* ================= "my club" ================= */
+function getHome() {
+  let v = null;
+  try { v = localStorage.getItem(HOME_KEY); } catch (e) { /* private mode */ }
+  if (v === null) return state.clubs.has(DEFAULT_HOME_CLUB) ? DEFAULT_HOME_CLUB : null;
+  const n = +v;
+  return state.clubs.has(n) ? n : null;
+}
+function setHome(id) {                       // '' = explicitly none, so the default stays off
+  try { localStorage.setItem(HOME_KEY, id == null ? '' : String(id)); } catch (e) { /* ignore */ }
+}
+
 /* ================= club detail ================= */
-function openClub(id) {
+let currentClub = null, windowCtlReady = false;
+
+function openClub(id, opts) {
   const c = state.clubs.get(id);
   if (!c) return;
+  const st = clubStats(id);
+  const scroll = !(opts && opts.noScroll);
+  currentClub = id;
+
   const panel = document.getElementById('club-panel');
   panel.classList.add('open');
+
+  const isHome = getHome() === id;
+  document.getElementById('cd-heading').textContent = isHome ? 'My club' : 'Club detail';
+  document.getElementById('cd-hint').textContent =
+    `${fmtInt(st.total)} samples · ${st.days.length} day${st.days.length === 1 ? '' : 's'} of history`;
   document.getElementById('cd-name').textContent = c.name;
   document.getElementById('cd-addr').textContent = c.address;
-  document.getElementById('cd-now').innerHTML = c.now == null ? 'no recent sample' : `<b>${c.now}</b> inside now`;
+  document.getElementById('cd-now').innerHTML =
+    c.now == null ? 'no recent sample' : `<b>${c.now}</b> inside now`;
 
-  const grid = buckets(r => r.club === id, r => r.n);
-  const maxV = Math.max(1, ...grid.flat().filter(v => v != null));
-  renderHeat(document.getElementById('cd-heat'), grid, maxV, (d, h, v) =>
-    v == null ? `<b>${DOW[d]} ${h}:00</b><div class="t2">no data yet</div>`
-              : `<b>${DOW[d]} ${h}:00–${(h + 1) % 24}:00</b><div class="t2">typically ~${Math.round(v)} ${Math.round(v) === 1 ? 'person' : 'people'}</div>`);
+  const star = document.getElementById('cd-star');
+  star.className = 'star-btn' + (isHome ? ' on' : '');
+  star.textContent = isHome ? '★ my club' : '☆ set as my club';
+  star.onclick = () => { setHome(isHome ? null : id); openClub(id, { noScroll: true }); renderPicker(); };
 
-  // chips: peak / quietest daytime cell once there's anything to say
-  const cells = [];
-  for (let d = 0; d < 7; d++) for (let h = 0; h < 24; h++) if (grid[d][h] != null) cells.push({ d, h, v: grid[d][h] });
-  const chips = [];
-  chips.push(`<span class="chip">peak seen: <b>${c.max}</b></span>`);
-  chips.push(`<span class="chip">samples: <b>${fmtInt(c.count)}</b></span>`);
-  if (cells.length >= 24) {
-    const day = cells.filter(x => x.h >= 6 && x.h <= 22);
-    const busiest = cells.reduce((a, b) => (b.v > a.v ? b : a));
-    const calm = (day.length ? day : cells).reduce((a, b) => (b.v < a.v ? b : a));
-    chips.push(`<span class="chip">🔥 busiest: <b>${DOW[busiest.d]} ${busiest.h}:00</b></span>`);
-    chips.push(`<span class="chip">🌙 calmest daytime: <b>${DOW[calm.d]} ${calm.h}:00</b></span>`);
-  } else {
-    chips.push(`<span class="chip">best-time picks appear after ~1 week of data</span>`);
-  }
-  document.getElementById('cd-chips').innerHTML = chips.join('');
+  renderVerdict(c, st);
+  renderStats(c, st);
+  renderBestTimes(c, st);
+
+  const maxV = Math.max(1, ...st.grid.flat().filter(v => v != null));
+  renderHeat(document.getElementById('cd-heat'), st.grid, maxV, (d, h, v) => {
+    if (v == null) return `<b>${DOW[d]} ${hhmm(h)}</b><div class="t2">no data yet</div>`;
+    const cell = st.gridQ[d][h];
+    return `<b>${DOW[d]} ${hhmm(h)}–${hhmm((h + 1) % 24)}</b>
+            <div class="t2">typically ~${people(Math.round(v))}</div>
+            <div class="t2">middle 50%: ${Math.round(cell.p25)}–${Math.round(cell.p75)} · ${cell.n} samples</div>`;
+  });
 
   renderSpark(document.getElementById('cd-spark'), c);
-  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  renderBand(document.getElementById('cd-hour-band'), st, c);
+  renderMults(document.getElementById('cd-mults'), st);
+  renderDaily(document.getElementById('cd-daily'), st);
+  renderDist(document.getElementById('cd-dist'), st, c);
+  renderHourTable(document.getElementById('cd-hour-tbl'), st);
+  renderDailyTable(document.getElementById('cd-daily-tbl'), st);
+
+  if (scroll) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 window.openClub = openClub;
+
+function renderVerdict(c, st) {
+  const el = document.getElementById('cd-verdict');
+  const v = nowVsTypical(c, st);
+  if (c.now == null) {
+    el.innerHTML = `<div class="say">No recent sample for this club.<div class="expl">The last poll didn't include a fresh reading — this usually clears itself within the hour.</div></div>`;
+    return;
+  }
+  if (!v || v.diff == null) {
+    el.innerHTML = `<div class="big">${c.now}<small>inside now</small></div>
+      <div class="say">Not enough history for this hour yet.<div class="expl">Once this weekday and hour have a few samples behind them, this box compares the live number against what's normal.</div></div>`;
+    return;
+  }
+  const pct = Math.round(Math.abs(v.diff) * 100);
+  const cls = pct < 12 ? 'flat' : (v.diff > 0 ? 'up' : 'down');
+  const word = cls === 'flat' ? 'about as usual' : (v.diff > 0 ? `${pct}% busier than usual` : `${pct}% quieter than usual`);
+  const arrow = cls === 'flat' ? '=' : (v.diff > 0 ? '▲' : '▼');
+  const verdict = cls === 'flat' ? 'A normal crowd for this slot.'
+                : v.diff > 0 ? 'Busier than this slot normally is.'
+                : 'A good time to go — below its own normal.';
+  el.innerHTML = `
+    <div class="big">${c.now}<small>inside now</small></div>
+    <div>
+      <div class="say"><span class="dev-pill ${cls}">${arrow} ${word}</span> &nbsp;<b>${verdict}</b></div>
+      <div class="expl">
+        ${DOW_LONG[v.dow]} at ${hhmm(v.hour)} normally sits around <b style="color:var(--ink)">${Math.round(v.ref.p50)}</b>,
+        with the middle 50% of samples between ${Math.round(v.ref.p25)} and ${Math.round(v.ref.p75)}
+        (${v.ref.n} samples${v.exact ? '' : ', pooled across all weekdays at this hour'}).
+      </div>
+      <div class="dev-scale"><span>quieter than usual</span><div class="ramp2"></div><span>busier</span></div>
+    </div>`;
+}
+
+function renderStats(c, st) {
+  const busiest = st.busiest, calm = picks(st, getWindow()).calmest;
+  const wkDelta = (st.weekdayMed != null && st.weekendMed != null && st.weekdayMed > 0)
+    ? Math.round(100 * (st.weekendMed - st.weekdayMed) / st.weekdayMed) : null;
+  const cards = [
+    ['Typical', Math.round(st.med), `median across all samples`],
+    ['Busy end', Math.round(st.p90), `9 samples in 10 sit below this`],
+    ['Peak seen', st.max, `highest single reading`],
+    busiest ? ['Busiest slot', `${DOW[busiest.d]} ${hhmm(busiest.h)}`, `~${people(Math.round(busiest.p50))}`] : null,
+    calm ? ['Calmest slot', `${DOW[calm.d]} ${hhmm(calm.h)}`, `~${people(Math.round(calm.p50))}`] : null,
+    st.spread != null ? ['Predictability', `±${Math.round(st.spread / 2)}`, `typical swing within one slot`] : null,
+    wkDelta != null ? ['Weekend', `${wkDelta > 0 ? '+' : ''}${wkDelta}%`, `vs a weekday, median`] : null,
+  ].filter(Boolean);
+  document.getElementById('cd-stats').innerHTML = cards.map(([k, v, n]) =>
+    `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div><div class="n">${n}</div></div>`).join('');
+
+  const chips = [`<span class="chip">samples: <b>${fmtInt(st.total)}</b></span>`];
+  if (!st.enough) chips.push(`<span class="chip">some slots are still thin — picks firm up as data lands</span>`);
+  const rank = [...state.clubs.values()].filter(x => x.now != null).sort((a, b) => b.now - a.now).findIndex(x => x.id === c.id);
+  if (rank >= 0) chips.push(`<span class="chip">busiest right now: <b>#${rank + 1}</b> of ${[...state.clubs.values()].filter(x => x.now != null).length}</span>`);
+  const cityClubs = [...state.clubs.values()].filter(x => x.city === c.city);
+  if (cityClubs.length > 1) chips.push(`<span class="chip">${esc(c.city)}: <b>${cityClubs.length}</b> clubs tracked</span>`);
+  document.getElementById('cd-chips').innerHTML = chips.join('');
+}
+
+function renderBestTimes(c, st) {
+  const el = document.getElementById('cd-best');
+  const w = getWindow();
+  const { perDay, calmest } = picks(st, w);
+  const todayDow = tsInfo(new Date(state.latestMs).toISOString()).dow;
+
+  el.innerHTML = perDay.map((x, d) => {
+    if (x == null) return `<div class="bt"><div class="d">${DOW[d]}</div><div class="t">—</div><div class="p">no data yet</div></div>`;
+    const isBest = calmest && x.d === calmest.d && x.h === calmest.h;
+    const cls = isBest ? ' best' : (d === todayDow ? ' today' : '');
+    return `<div class="bt${cls}"><div class="d">${DOW[d]}${d === todayDow ? ' · today' : ''}</div>
+      <div class="t">${hhmm(x.h)}</div><div class="p">~${people(Math.round(x.p50))}</div>
+      ${isBest ? '<div class="tagline">best of the week</div>' : ''}</div>`;
+  }).join('');
+
+  const nq = nextQuiet(st, w);
+  const busyNorm = st.busiest ? st.busiest.p50 : st.p90;
+  const note = document.getElementById('cd-next');
+  note.innerHTML = nq
+    ? `<b>Next quiet window:</b> ${dayLabel(nq.ms)} at <b>${hhmm(nq.hour)}</b> — typically ~${people(Math.round(nq.v))},
+       against ~${people(Math.round(busyNorm))} at this club's worst hour
+       (${DOW_LONG[st.busiest.d]} ${hhmm(st.busiest.h)}).`
+    : `Quiet-window picks need a little more history in this time range — widen the hours, or check back in a few days.`;
+}
+
+function initWindowControls() {
+  const w = getWindow();
+  const from = document.getElementById('win-from'), to = document.getElementById('win-to');
+  const opts = sel => Array.from({ length: 24 }, (_, h) =>
+    `<option value="${h}"${h === sel ? ' selected' : ''}>${hhmm(h)}</option>`).join('');
+  from.innerHTML = opts(w.from);
+  to.innerHTML = opts(w.to);
+  const onChange = () => {
+    let f = +from.value, t = +to.value;
+    if (f > t) { if (document.activeElement === from) t = f; else f = t; from.value = f; to.value = t; }
+    setWindow({ from: f, to: t });
+    if (currentClub != null) {
+      const c = state.clubs.get(currentClub);
+      renderBestTimes(c, clubStats(currentClub));
+      renderStats(c, clubStats(currentClub));
+    }
+  };
+  from.onchange = onChange;
+  to.onchange = onChange;
+}
+
+/* ---------- a typical day: median line + middle-50% band ---------- */
+function renderBand(el, st, club) {
+  const def = st.hour.map((x, i) => (x ? { h: i, ...x } : null)).filter(Boolean);
+  if (def.length < 6) { el.className = 'skeleton'; el.textContent = 'collecting…'; return; }
+  el.className = '';
+  const W = 680, H = 240, P = { l: 36, r: 14, t: 16, b: 28 };
+  const maxV = Math.max(1, ...def.map(p => p.p75));
+  const x = h => P.l + (W - P.l - P.r) * (h / 23);
+  const y = v => H - P.b - (H - P.t - P.b) * (v / maxV);
+  const nowHour = club.now != null ? tsInfo(new Date(state.latestMs).toISOString()).hour : null;
+
+  let band = '', line = '';
+  def.forEach((p, i) => { band += `${i ? 'L' : 'M'} ${x(p.h).toFixed(1)} ${y(p.p75).toFixed(1)} `; });
+  for (let i = def.length - 1; i >= 0; i--) band += `L ${x(def[i].h).toFixed(1)} ${y(def[i].p25).toFixed(1)} `;
+  band += 'Z';
+  def.forEach((p, i) => { line += `${i ? 'L' : 'M'} ${x(p.h).toFixed(1)} ${y(p.p50).toFixed(1)} `; });
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block" role="img"
+    aria-label="Median headcount by hour with the middle 50% of samples shaded">`;
+  for (let k = 0; k <= 3; k++) {
+    const v = maxV * k / 3;
+    svg += `<line x1="${P.l}" y1="${y(v)}" x2="${W - P.r}" y2="${y(v)}" stroke="rgba(255,255,255,.07)"/>
+            <text x="${P.l - 7}" y="${y(v) + 3.5}" font-size="10" fill="#7d8493" text-anchor="end">${Math.round(v)}</text>`;
+  }
+  if (nowHour != null) {
+    svg += `<line x1="${x(nowHour)}" y1="${P.t}" x2="${x(nowHour)}" y2="${H - P.b}" stroke="rgba(255,255,255,.22)"/>
+            <text x="${x(nowHour)}" y="${P.t - 4}" font-size="9.5" fill="#b7bdc9" text-anchor="middle">now</text>`;
+  }
+  svg += `<path d="${band}" fill="rgba(57,135,229,.16)"/>
+          <path d="${line}" fill="none" stroke="${SERIES.median}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  for (let h = 0; h < 24; h += 3) {
+    svg += `<text x="${x(h)}" y="${H - 8}" font-size="10" fill="#7d8493" text-anchor="middle">${h}</text>`;
+  }
+  // selective direct labels: the day's peak and its quietest active hour
+  const w = getWindow();
+  const peak = def.reduce((a, b) => (b.p50 > a.p50 ? b : a));
+  const dip = def.filter(p => inWindow(p.h, w)).reduce((a, b) => (b.p50 < a.p50 ? b : a), { p50: Infinity });
+  for (const p of [peak, dip.p50 === Infinity ? null : dip].filter(Boolean)) {
+    svg += `<circle cx="${x(p.h)}" cy="${y(p.p50)}" r="3.5" fill="${SERIES.median}" stroke="var(--surface)" stroke-width="2"/>
+            <text x="${x(p.h)}" y="${y(p.p50) - 9}" font-size="10.5" font-weight="700" fill="#f4f6fa" text-anchor="middle">${Math.round(p.p50)}</text>`;
+  }
+  svg += `<rect x="0" y="0" width="${W}" height="${H}" fill="transparent" class="hit"/></svg>`;
+  el.innerHTML = svg;
+  const hit = el.querySelector('.hit');
+  hit.onmousemove = e => {
+    const box = hit.getBoundingClientRect();
+    const h = Math.max(0, Math.min(23, Math.round(((e.clientX - box.left) / box.width * W - P.l) / (W - P.l - P.r) * 23)));
+    const p = st.hour[h];
+    showTip(p == null ? `<b>${hhmm(h)}</b><div class="t2">no data</div>`
+      : `<b>${hhmm(h)}–${hhmm((h + 1) % 24)}</b>
+         <div class="t2">typically ~${people(Math.round(p.p50))}</div>
+         <div class="t2">middle 50%: ${Math.round(p.p25)}–${Math.round(p.p75)} · ${p.n} samples</div>`,
+      e.clientX, e.clientY);
+  };
+  hit.onmouseleave = hideTip;
+}
+
+/* ---------- seven weekday curves on one shared scale ---------- */
+function renderMults(el, st) {
+  const maxV = Math.max(1, ...st.grid.flat().filter(v => v != null));
+  const W = 150, H = 54;
+  el.innerHTML = st.grid.map((row, d) => {
+    const pts = row.map((v, h) => (v == null ? null : { h, v })).filter(Boolean);
+    const dayPeak = pts.length ? pts.reduce((a, b) => (b.v > a.v ? b : a)) : null;
+    if (pts.length < 4) return `<div class="sm"><div class="h"><b>${DOW[d]}</b><i>—</i></div>
+      <div style="height:${H}px;display:flex;align-items:center;justify-content:center;color:var(--ink-muted);font-size:11px">collecting…</div></div>`;
+    const x = h => (W * h) / 23, y = v => H - 4 - (H - 10) * (v / maxV);
+    let line = '', area = `M ${x(pts[0].h)} ${H - 4} `;
+    pts.forEach((p, i) => { line += `${i ? 'L' : 'M'} ${x(p.h).toFixed(1)} ${y(p.v).toFixed(1)} `; area += `L ${x(p.h).toFixed(1)} ${y(p.v).toFixed(1)} `; });
+    area += `L ${x(pts[pts.length - 1].h)} ${H - 4} Z`;
+    return `<div class="sm" data-d="${d}">
+      <div class="h"><b>${DOW[d]}</b><i>${Math.round(dayPeak.v)} @ ${hhmm(dayPeak.h)}</i></div>
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block" role="img" aria-label="${DOW_LONG[d]} hourly median">
+        <path d="${area}" fill="rgba(57,135,229,.14)"/>
+        <path d="${line}" fill="none" stroke="${SERIES.median}" stroke-width="1.6" stroke-linejoin="round"/>
+        <circle cx="${x(dayPeak.h)}" cy="${y(dayPeak.v)}" r="2.6" fill="${SERIES.median}"/>
+      </svg></div>`;
+  }).join('');
+}
+
+/* ---------- day by day: peak + median, same axis (both are headcounts) ---------- */
+function renderDaily(el, st) {
+  const days = st.days.filter(d => d.n >= 6);
+  if (days.length < 3) { el.className = 'skeleton'; el.textContent = 'collecting…'; return; }
+  el.className = '';
+  const W = 460, H = 200, P = { l: 32, r: 12, t: 26, b: 30 };
+  const maxV = Math.max(1, ...days.map(d => d.max));
+  const x = i => P.l + (W - P.l - P.r) * (days.length === 1 ? .5 : i / (days.length - 1));
+  const y = v => H - P.b - (H - P.t - P.b) * (v / maxV);
+  const path = key => days.map((d, i) => `${i ? 'L' : 'M'} ${x(i).toFixed(1)} ${y(d[key]).toFixed(1)} `).join('');
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block" role="img" aria-label="Daily peak and median headcount">`;
+  for (let k = 0; k <= 2; k++) {
+    const v = maxV * k / 2;
+    svg += `<line x1="${P.l}" y1="${y(v)}" x2="${W - P.r}" y2="${y(v)}" stroke="rgba(255,255,255,.07)"/>
+            <text x="${P.l - 6}" y="${y(v) + 3.5}" font-size="9.5" fill="#7d8493" text-anchor="end">${Math.round(v)}</text>`;
+  }
+  svg += `<path d="${path('max')}" fill="none" stroke="${SERIES.peak}" stroke-width="2" stroke-linejoin="round"/>
+          <path d="${path('med')}" fill="none" stroke="${SERIES.median}" stroke-width="2" stroke-linejoin="round"/>`;
+  // legend (2 series → always present) + weekend markers on the axis
+  svg += `<circle cx="${P.l + 4}" cy="12" r="4" fill="${SERIES.peak}"/><text x="${P.l + 13}" y="15.5" font-size="10.5" fill="#b7bdc9">daily peak</text>
+          <circle cx="${P.l + 88}" cy="12" r="4" fill="${SERIES.median}"/><text x="${P.l + 97}" y="15.5" font-size="10.5" fill="#b7bdc9">daily median</text>`;
+  days.forEach((d, i) => {
+    if (d.dow !== 5 && d.dow !== 6) return;
+    svg += `<circle cx="${x(i)}" cy="${H - P.b + 8}" r="1.7" fill="#7d8493"/>`;
+  });
+  svg += `<text x="${P.l}" y="${H - 6}" font-size="9.5" fill="#7d8493">${days[0].key.slice(5)}</text>
+          <text x="${W - P.r}" y="${H - 6}" font-size="9.5" fill="#7d8493" text-anchor="end">${days[days.length - 1].key.slice(5)}</text>
+          <text x="${(P.l + W - P.r) / 2}" y="${H - 6}" font-size="9" fill="#5f6673" text-anchor="middle">· = weekend</text>
+          <rect x="0" y="0" width="${W}" height="${H}" fill="transparent" class="hit"/></svg>`;
+  el.innerHTML = svg;
+  const hit = el.querySelector('.hit');
+  hit.onmousemove = e => {
+    const box = hit.getBoundingClientRect();
+    const px = (e.clientX - box.left) / box.width * W;
+    let bi = 0;
+    days.forEach((d, i) => { if (Math.abs(x(i) - px) < Math.abs(x(bi) - px)) bi = i; });
+    const d = days[bi];
+    showTip(`<b>${DOW[d.dow]} ${d.key}</b>
+      <div class="t2">peak ${d.max} · median ${Math.round(d.med)}</div>
+      <div class="t2">${d.n} samples that day</div>`, e.clientX, e.clientY);
+  };
+  hit.onmouseleave = hideTip;
+}
+
+/* ---------- occupancy distribution ---------- */
+function renderDist(el, st, club) {
+  if (st.total < 50) { el.className = 'skeleton'; el.textContent = 'collecting…'; return; }
+  el.className = '';
+  const NB = 12, step = Math.max(1, Math.ceil((st.max + 1) / NB));
+  const bins = Array.from({ length: NB }, () => 0);
+  for (const n of st.all) bins[Math.min(NB - 1, Math.floor(n / step))]++;
+  const W = 460, H = 200, P = { l: 32, r: 12, t: 14, b: 34 };
+  const maxC = Math.max(1, ...bins);
+  const bw = (W - P.l - P.r) / NB;
+  const nowBin = club.now != null ? Math.min(NB - 1, Math.floor(club.now / step)) : -1;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block" role="img" aria-label="Distribution of headcounts">`;
+  svg += `<line x1="${P.l}" y1="${H - P.b}" x2="${W - P.r}" y2="${H - P.b}" stroke="rgba(255,255,255,.14)"/>`;
+  bins.forEach((cnt, i) => {
+    const h = (H - P.t - P.b) * (cnt / maxC);
+    const isNow = i === nowBin;
+    svg += `<rect class="bar" data-i="${i}" x="${P.l + i * bw + 1}" y="${H - P.b - h}" width="${bw - 2}" height="${Math.max(1, h)}" rx="3"
+              fill="${isNow ? SERIES.peak : SERIES.median}" opacity="${isNow ? 1 : .75}"/>`;
+    if (i % 3 === 0) svg += `<text x="${P.l + i * bw + bw / 2}" y="${H - P.b + 13}" font-size="9.5" fill="#7d8493" text-anchor="middle">${i * step}</text>`;
+  });
+  if (nowBin >= 0) {
+    svg += `<text x="${P.l + nowBin * bw + bw / 2}" y="${H - P.b - (H - P.t - P.b) * (bins[nowBin] / maxC) - 6}"
+              font-size="10" font-weight="700" fill="${SERIES.peak}" text-anchor="middle">now</text>`;
+  }
+  svg += `<text x="${(P.l + W - P.r) / 2}" y="${H - 6}" font-size="9.5" fill="#7d8493" text-anchor="middle">people inside</text></svg>`;
+  el.innerHTML = svg;
+
+  const below = v => st.all.filter(n => n < v).length / st.total;
+  const quietMark = Math.round(st.p25);
+  el.insertAdjacentHTML('beforeend',
+    `<div style="font-size:12.5px;color:var(--ink-2);margin-top:6px">
+       Under <b style="color:var(--ink)">${quietMark}</b> people ${Math.round(100 * below(quietMark))}% of the time ·
+       over <b style="color:var(--ink)">${Math.round(st.p90)}</b> just ${Math.round(100 * (1 - below(Math.round(st.p90))))}%.
+     </div>`);
+
+  el.onmousemove = e => {
+    const b = e.target.closest('.bar');
+    if (!b) return hideTip();
+    const i = +b.dataset.i;
+    showTip(`<b>${i * step}–${(i + 1) * step - 1} people</b>
+      <div class="t2">${Math.round(1000 * bins[i] / st.total) / 10}% of samples (${fmtInt(bins[i])})</div>`, e.clientX, e.clientY);
+  };
+  el.onmouseleave = hideTip;
+}
+
+/* ---------- table views (every chart has a numeric twin) ---------- */
+function renderHourTable(el, st) {
+  el.innerHTML = `<table class="data"><caption>Median and quartiles by hour, Warsaw time.</caption>
+    <thead><tr><th>Hour</th><th>Lower quartile</th><th>Median</th><th>Upper quartile</th><th>Samples</th></tr></thead>
+    <tbody>${st.hour.map((x, h) => `<tr><td>${hhmm(h)}</td>${x == null
+      ? '<td>—</td><td>—</td><td>—</td><td>0</td>'
+      : `<td>${Math.round(x.p25)}</td><td>${Math.round(x.p50)}</td><td>${Math.round(x.p75)}</td><td>${x.n}</td>`}</tr>`).join('')}</tbody></table>`;
+}
+function renderDailyTable(el, st) {
+  el.innerHTML = `<table class="data"><caption>One row per day of collection.</caption>
+    <thead><tr><th>Date</th><th>Day</th><th>Median</th><th>Peak</th><th>Samples</th></tr></thead>
+    <tbody>${st.days.map(d => `<tr><td>${d.key}</td><td>${DOW[d.dow]}</td><td>${Math.round(d.med)}</td><td>${d.max}</td><td>${d.n}</td></tr>`).join('')}</tbody></table>`;
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('.tbl-toggle');
+  if (!b) return;
+  const t = document.getElementById(b.dataset.target);
+  const open = t.classList.toggle('open');
+  b.textContent = open ? 'hide numbers' : 'show numbers';
+});
+
+/* ================= club picker ================= */
+function renderPicker() {
+  const search = document.getElementById('picker-search');
+  const sort = document.getElementById('picker-sort');
+  const list = document.getElementById('clublist');
+  const home = getHome();
+
+  const draw = () => {
+    const q = search.value.trim().toLowerCase();
+    let cs = [...state.clubs.values()];
+    if (q) cs = cs.filter(c => (c.name + ' ' + c.address).toLowerCase().includes(q));
+    const key = sort.value;
+    cs.sort((a, b) =>
+      key === 'now'   ? (b.now ?? -1) - (a.now ?? -1) :
+      key === 'quiet' ? (a.now ?? 1e9) - (b.now ?? 1e9) :
+      key === 'peak'  ? b.max - a.max :
+                        a.name.localeCompare(b.name, 'pl'));
+    if (home != null) { const i = cs.findIndex(c => c.id === home); if (i > 0) cs.unshift(cs.splice(i, 1)[0]); }
+    list.innerHTML = cs.map(c => `
+      <div class="cl${c.id === home ? ' is-home' : ''}" data-id="${c.id}">
+        <span class="cn">${c.id === home ? '★ ' : ''}${esc(c.name)}</span>
+        <span class="cv">${c.now == null ? '—' : c.now}</span>
+        <span class="sub">${esc(c.address)} · peak seen ${c.max}</span>
+      </div>`).join('');
+    document.getElementById('picker-count').textContent =
+      `${cs.length} of ${state.clubs.size} clubs · number = people inside now`;
+  };
+  search.oninput = draw;
+  sort.onchange = draw;
+  list.onclick = e => {
+    const row = e.target.closest('.cl');
+    if (row) openClub(+row.dataset.id);
+  };
+  draw();
+}
 
 function renderSpark(el, club) {
   const from = state.latestMs - 48 * 3600e3;
@@ -729,6 +1398,12 @@ async function boot() {
   if (!map) renderMap(); else refreshMarkers();
   renderNational();
   renderBoards();
+  renderPicker();
+  if (!windowCtlReady) { initWindowControls(); windowCtlReady = true; }
+
+  // land on your own club straight away; a manual pick during the session wins
+  const target = currentClub ?? getHome();
+  if (target != null && state.clubs.has(target)) openClub(target, { noScroll: true });
 }
 function refreshMarkers() {
   for (const c of state.clubs.values()) {
