@@ -34,3 +34,44 @@ jobs:
           git diff --staged --quiet || git commit -m "sample $(date -u +%FT%TZ)"
           git pull --rebase
           git push
+
+  # Publishes the dashboard to GitHub Pages. This has to live in the same
+  # workflow run as the collector, NOT in its own `on: push` workflow: the
+  # poll job pushes with the default GITHUB_TOKEN, and GitHub deliberately
+  # does not start new workflow runs from GITHUB_TOKEN pushes. A separate
+  # push-triggered deploy would simply never fire.
+  deploy:
+    needs: poll
+    runs-on: ubuntu-latest
+    permissions:                 # job-level block replaces the workflow-level grant
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false  # never interrupt a deploy that is mid-flight
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main              # the commit poll just pushed, not the dispatched sha
+
+      - uses: actions/configure-pages@v5
+
+      - name: Stage site
+        run: |
+          mkdir -p _site
+          cp index.html clubs.csv clubs-geo.json _site/
+          cp samples-*.csv _site/
+          cp -r vendor _site/
+          touch _site/.nojekyll   # belt and braces: stops Jekyll ever eating vendor/
+          du -sh _site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
