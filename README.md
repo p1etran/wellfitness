@@ -84,12 +84,27 @@ the source. Repo is private.
 
 ## Gotchas
 
-- **The workflow is currently on `*/15`, and that does not fit the budget.**
-  Private repos on the GitHub Free plan get 2,000 Linux minutes/month, and
-  every job is billed rounded up to a full minute. 30-minute polling
-  (~1,440 min/month) fits; 15-minute polling does not, and collection will
-  silently stop partway through the month when the allowance runs out.
-  Either move the cron to `*/30` or accept losing the back half of each month.
+- **Actions minutes are no longer a constraint — while the repo stays public.**
+  The old limit (2,000 Linux min/month, every job billed rounded up to a full
+  minute) applied to private repos on the Free plan, and `*/15` polling blew
+  through it. Public repos get unmetered Actions minutes, so the cadence is
+  free. Make this repo private again and the budget problem comes straight
+  back: move the cron to `*/30` (~1,440 min/month) or collection will stop
+  partway through each month.
+- **Deploying the page is a job inside `poll.yml`, and it has to stay there.**
+  The poll job pushes with the default `GITHUB_TOKEN`, and GitHub deliberately
+  refuses to start new workflow runs from `GITHUB_TOKEN` pushes. A separate
+  `on: push` Pages workflow would therefore never fire — the site would just
+  silently stop updating. The `deploy` job runs in the same workflow run via
+  `needs: poll`, which needs no trigger at all, and checks out `ref: main` so
+  it publishes the commit the poll job just pushed rather than the older sha
+  the run started from.
+- **Pages source must be set to "GitHub Actions".** Settings → Pages → Build
+  and deployment → Source. On "Deploy from a branch" the `deploy-pages` step
+  fails outright, and the legacy `pages-build-deployment` job that source uses
+  stops appearing in the Actions tab the moment the source is switched away
+  from it. If the site goes stale with no failing run anywhere, check this
+  setting first — a silent stop with no red X is exactly what it looks like.
 - **UTC storage.** Analysis must convert to `Europe/Warsaw`, not a hardcoded
   offset, or the DST change in late October shifts half the dataset by an hour.
 - **Cron is best-effort.** Scheduled runs get delayed or dropped under load.
@@ -164,10 +179,23 @@ samples load.
 Leaflet is vendored in `vendor/leaflet/` so the only runtime network
 dependency is the map tiles.
 
-**Serving it:** the page fetches sibling CSV files, so it needs HTTP —
-`python3 -m http.server` in the repo root, or GitHub Pages (requires the repo
-to be public, or a paid plan, since Pages isn't available on private free
-repos).
+**Serving it locally:** the page fetches sibling CSV files, so it needs HTTP —
+`python3 -m http.server` in the repo root, then open `localhost:8000`. Opening
+`index.html` straight off disk won't work.
+
+**Deployment:** the `deploy` job in `.github/workflows/poll.yml` publishes to
+GitHub Pages on every poll, so the live site tracks the data within one poll
+interval. It stages only what the site needs — `index.html`, `clubs.csv`,
+`clubs-geo.json`, the `samples-*.csv` files and `vendor/` — into `_site`
+rather than uploading the repo root, which keeps `.git` out of the artifact
+and the payload at roughly 20 MB. Requires Pages source = "GitHub Actions"
+(see Gotchas).
+
+**Payload ceiling:** the browser downloads and parses those CSVs on every
+load, so page weight grows with the dataset. `MAX_MONTH_FILES = 6` in
+`index.html` caps it at the newest six monthly files — about 36 MB and ~7 s to
+interactive at the current ~6 MB/month. If that becomes too slow, the fix is
+to precompute aggregates at collection time rather than to raise the cap.
 
 Needs roughly 3 weeks of data before the patterns mean anything, and August
 is atypical — don't read much into the first month.
